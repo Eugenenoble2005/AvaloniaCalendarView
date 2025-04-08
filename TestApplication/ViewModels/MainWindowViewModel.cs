@@ -1,6 +1,6 @@
 ﻿using System;
 using CommunityToolkit.Mvvm.ComponentModel;
-
+using AvaloniaCalendarView;
 namespace TestApplication.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
@@ -10,18 +10,38 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     public DateTime _viewDate = DateTime.Now;
 
+    [ObservableProperty]
+    public ViewType _viewType = ViewType.Week;
+
     public void NextDate()
     {
-        ViewDate = ViewDate.AddMonths(1);
-    }
-    
-    public void PrevDate()
-    {
-        ViewDate = ViewDate.AddMonths(-1);
+        if (ViewType == ViewType.Month)
+        {
+            ViewDate = ViewDate.AddMonths(1);
+        }
+        else if (ViewType == ViewType.Week)
+        {
+            ViewDate = ViewDate.AddDays(7);
+        }
     }
 
-    public void Today() {
+    public void PrevDate()
+    {
+        if (ViewType == ViewType.Month)
+        {
+            ViewDate = ViewDate.AddMonths(-1);
+        }
+        else if (ViewType == ViewType.Week)
+        {
+            ViewDate = ViewDate.AddDays(-7);
+        }
+    }
+
+    public void Today()
+    {
         ViewDate = DateTime.Now;
     }
 
+    public void Month() => ViewType = ViewType.Month;
+    public void Week() => ViewType = ViewType.Week;
 }

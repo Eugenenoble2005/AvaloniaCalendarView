@@ -9,23 +9,36 @@ internal class MonthView : ContentControl, ICalendarView
     public MonthView(DateTime _dateTime)
     {
         ViewDate = _dateTime;
+        try
+        {
+            Initialize();
+        }
+        catch (Exception Ex)
+        {
+            Console.WriteLine(Ex);
+        }
+    }
+
+    private void Initialize()
+    {
         Grid MainGrid = new() { RowDefinitions = new("Auto,*") };
-        Grid dayTitleGrid = new() { ColumnDefinitions = new("*,*,*,*,*,*,*") };
-        Grid.SetRow(dayTitleGrid, 0);
+        //grid for the day names
+        Grid dayNameGrid = new() { ColumnDefinitions = new("*,*,*,*,*,*,*"), Background = Brushes.Transparent };
+        Grid.SetRow(dayNameGrid, 0);
         for (int i = 0; i < 7; i++)
         {
-            Grid pGrid = new() { Width = 200 };
+            Grid pGrid = new() { Width = 200, Background = Brushes.Transparent };
             pGrid.Children.Add(new TextBlock() { Text = _daysArray[i], TextAlignment = Avalonia.Media.TextAlignment.Center, FontWeight = FontWeight.Bold });
             Grid.SetColumn(pGrid, i);
-            dayTitleGrid.Children.Add(pGrid);
+            dayNameGrid.Children.Add(pGrid);
         }
-        MainGrid.Children.Add(dayTitleGrid);
-
-        Grid dateGrid = new() { ColumnDefinitions = new("*,*,*,*,*,*,*") };
+        MainGrid.Children.Add(dayNameGrid);
+        //grid for the actual dates
+        Grid dateGrid = new() { ColumnDefinitions = new("*,*,*,*,*,*,*"), Background = Brushes.Transparent };
         Grid.SetRow(dateGrid, 1);
         for (int i = 0; i < 7; i++)
         {
-            Grid pGrid = new() { RowDefinitions = new("*,*,*,*,*") };
+            Grid pGrid = new() { RowDefinitions = new("*,*,*,*,*"), Background = Brushes.Transparent };
             Grid.SetColumn(pGrid, i);
             SetDateColumnContent(pGrid);
             dateGrid.Children.Add(pGrid);
@@ -33,7 +46,6 @@ internal class MonthView : ContentControl, ICalendarView
         MainGrid.Children.Add(dateGrid);
         Content = MainGrid;
     }
-
     public DateTime ViewDate { get; }
 
     private void SetDateColumnContent(Grid col)
@@ -42,8 +54,8 @@ internal class MonthView : ContentControl, ICalendarView
         for (int i = 0; i < 5; i++)
         {
             Thickness thickness = new(1, 1, index == 6 ? 1 : 0, i == 4 ? 1 : 0);
-            Border colBorder = new() { BorderBrush = new SolidColorBrush(Colors.White), BorderThickness = thickness };
-            Panel p = new();
+            Border colBorder = new() { BorderBrush = new SolidColorBrush(Colors.White), BorderThickness = thickness, Background = Brushes.Transparent };
+            Panel p = new() { Background = Brushes.Transparent };
             var squaredate = CalculateGridSquareDate(i, index, out bool outOfBounds);
             var textblock = new TextBlock() { Text = squaredate, TextAlignment = Avalonia.Media.TextAlignment.Right, Margin = new(10), FontSize = 20 };
             if (outOfBounds)
@@ -73,14 +85,12 @@ internal class MonthView : ContentControl, ICalendarView
             outOfBounds = true;
             return (days_in_month - (firstDay - col) + 1).ToString();
         }
-
         //out of bounds, next month
         if (row == 4 && col > lastDay)
         {
             outOfBounds = true;
             return (col - lastDay).ToString();
         }
-
         outOfBounds = false;
         return row == 0 ? ((col - firstDay) + 1).ToString() : ((((row - 1) * 7) + col + (6 - firstDay) + 2).ToString());
     }

@@ -36,15 +36,15 @@
             <TextBlock
                 Grid.Column="1"
                 FontSize="30"
-                Text="{Binding ViewDate, StringFormat='{}{0:MMMM}'}"
+                Text="{Binding ViewDate, StringFormat='{}{0:MMMM yyyy}'}"
                 TextAlignment="Center" />
             <StackPanel
                 Grid.Column="2"
                 HorizontalAlignment="Center"
                 Orientation="Horizontal">
-                <Button Content="Month" />
+                <Button Command="{Binding Month}" Content="Month" />
                 <Button Content="Day" />
-                <Button Content="Week" />
+                <Button Command="{Binding Week}" Content="Week" />
             </StackPanel>
         </Grid>
         <ScrollViewer
@@ -52,10 +52,11 @@
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch">
             <calendar:CalendarView
-                Margin="20,0,20,0"
+                Margin="10,0,10,0"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
-                ViewDate="{Binding ViewDate}" />
+                ViewDate="{Binding ViewDate}"
+                ViewType="{Binding ViewType}" />
         </ScrollViewer>
     </Grid>
 </Window>
