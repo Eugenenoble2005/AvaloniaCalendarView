@@ -43,7 +43,7 @@
                 HorizontalAlignment="Center"
                 Orientation="Horizontal">
                 <Button Command="{Binding Month}" Content="Month" />
-                <Button Content="Day" />
+                <Button Command="{Binding Day}" Content="Day" />
                 <Button Command="{Binding Week}" Content="Week" />
             </StackPanel>
         </Grid>
@@ -55,6 +55,7 @@
                 Margin="10,0,10,0"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
+                DateEvents="{Binding Events}"
                 ViewDate="{Binding ViewDate}"
                 ViewType="{Binding ViewType}" />
         </ScrollViewer>

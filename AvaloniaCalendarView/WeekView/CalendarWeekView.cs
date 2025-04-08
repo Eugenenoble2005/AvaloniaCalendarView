@@ -5,6 +5,8 @@ namespace AvaloniaCalendarView.WeekView;
 internal class WeekView : ContentControl, ICalendarView
 {
     public DateTime ViewDate { get; }
+    public IEnumerable<CalendarEvent> DateEvents { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
     private readonly String[] _daysArray = new String[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
 
     public WeekView(DateTime _dateTime)
@@ -70,6 +72,7 @@ internal class WeekView : ContentControl, ICalendarView
         {
             Thickness thickness = new(1, 0, index == 7 ? 1 : 0, 1);
             Border colBorder = new() { BorderBrush = Brushes.Gray, BorderThickness = thickness, Padding = new(5) };
+            colBorder.Classes.Add("avalonia_calendar_view_gridcell");
             Panel p = new() { Height = 20 };
             if (i == 0)
             {
