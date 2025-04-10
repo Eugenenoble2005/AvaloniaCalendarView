@@ -13,7 +13,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public DateTime _viewDate = DateTime.Now;
 
     [ObservableProperty]
-    public ViewType _viewType = ViewType.Month;
+    public ViewType _viewType = ViewType.Week;
 
     public void NextDate()
     {
@@ -48,34 +48,23 @@ public partial class MainWindowViewModel : ViewModelBase
     }
     [ObservableProperty]
     public List<CalendarEvent> _events = new() {
-          new() {
-            Title = "Event 1",
-            Start = DateTime.Now,
-            End = DateTime.Now.AddDays(3).AddHours(1),
-            BackgroundBrush = Brushes.CornflowerBlue
-        },
         new() {
-            Title = "Event 2",
-            Start = DateTime.Now.AddDays(-1),
-            End = DateTime.Now.AddDays(4),
-            BackgroundBrush = Brushes.DarkRed
+            Title = "a 3 day event",
+            BackgroundBrush = Brushes.Red,
+            Start = new DateTime(2025,4,8,0,0,0),
+            End = new(2025,4,10,7,15,0)
         },
-        new() {
-            Title = "Event 3",
-            Start = new(2025,4,4),
-            End = new(2025,4,6),
-            BackgroundBrush = Brushes.DarkSeaGreen
+        new(){
+            Title="a long event",
+            BackgroundBrush = Brushes.Blue,
+            Start = new(2025,4,27,5,30,0),
+            End = new(2025,5,3,23,59,0),
         },
-        new() {
-            Title = "Event 4",
-            Start = new(2025,5,2),
-            End = new(2025,5,3),
-            BackgroundBrush = Brushes.LightSalmon
-        },
-        new() {
-            Title = "Event 5",
-            Start = new(2025,3,30),
-            End = new(2025,3,30),
+        new(){
+            Title = "A draggable event",
+            BackgroundBrush = Brushes.Snow,
+            Start = new(2025,4,9,2,0,0),
+            End= new(2025,4,9,9,15,0)
         }
     };
     public void Today()
@@ -84,18 +73,18 @@ public partial class MainWindowViewModel : ViewModelBase
     }
     public MainWindowViewModel()
     {
-        for (int i = 0; i < 25; i++)
-        {
-            Events.Add(
-                new()
-                {
-                    Title = $"Event {i}",
-                    Start = DateTime.Now,
-                    End = DateTime.Now.AddDays(2),
-                    BackgroundBrush = Brushes.Green
-                }
-            );
-        }
+        // for (int i = 0; i < 25; i++)
+        // {
+        //     Events.Add(
+        //         new()
+        //         {
+        //             Title = $"Event {i}",
+        //             Start = DateTime.Now,
+        //             End = DateTime.Now.AddDays(2),
+        //             BackgroundBrush = Brushes.Green
+        //         }
+        //     );
+        // }
     }
     public void Month() => ViewType = ViewType.Month;
     public void Week() => ViewType = ViewType.Week;

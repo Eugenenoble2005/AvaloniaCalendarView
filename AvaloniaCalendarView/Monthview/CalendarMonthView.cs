@@ -53,16 +53,17 @@ internal class MonthView : ContentControl, ICalendarView
     public DateTime ViewDate { get; }
     public IEnumerable<CalendarEvent> DateEvents { get; set; }
 
-    private void SetDateColumnContent(Grid col)
+    private void SetDateColumnContent(Grid _col)
     {
-        int index = Grid.GetColumn(col);
-        for (int i = 0; i < 5; i++)
+        int col = Grid.GetColumn(_col);
+        for (int row = 0; row < 5; row++)
         {
-            Thickness thickness = new(1, 1, index == 6 ? 1 : 0, i == 4 ? 1 : 0);
+            Thickness thickness = new(1, 1, col == 6 ? 1 : 0, row == 4 ? 1 : 0);
             Border colBorder = new() { BorderBrush = Brushes.Gray, BorderThickness = thickness };
             colBorder.Classes.Add("avalonia_calendar_view_gridcell");
+            Grid pWrapperGrid = new();
             Panel p = new() { Background = Brushes.Transparent };
-            var squaredate = CalculateGridSquareDate(i, index, out bool outOfBounds, out string? direction);
+            var squaredate = CalculateGridSquareDate(row, col, out bool outOfBounds, out string? direction);
             var textblock = new TextBlock() { Text = squaredate, TextAlignment = Avalonia.Media.TextAlignment.Right, Margin = new(10), FontSize = 20 };
             if (outOfBounds)
             {
@@ -80,10 +81,12 @@ internal class MonthView : ContentControl, ICalendarView
             else
             {
                 dateOfThisCell = new(ViewDate.Year, ViewDate.Month, int.Parse(squaredate));
+                // Console.WriteLine(dateOfThisCell);
             }
-            //get all events that fall on this date
+            //get all events that fall on this date, ignoring time
             var eventsOnThisDate = DateEvents.Where(p =>
-                dateOfThisCell >= p.Start && dateOfThisCell <= p.End
+                DateOnly.FromDateTime(dateOfThisCell) >= DateOnly.FromDateTime(p.Start) &&
+                DateOnly.FromDateTime(dateOfThisCell) <= DateOnly.FromDateTime(p.End)
             );
             if (eventsOnThisDate.Count() > 0)
             {
@@ -116,8 +119,15 @@ internal class MonthView : ContentControl, ICalendarView
             }
             p.Children.Add(eventsHolder);
             colBorder.Child = p;
-            Grid.SetRow(colBorder, i);
-            col.Children.Add(colBorder);
+            pWrapperGrid.Children.Add(colBorder);
+            if (outOfBounds)
+            {
+                //draw a grey overlay over this cell
+                Panel overlay = new() { Background = new SolidColorBrush(Colors.Black, 0.5) };
+                pWrapperGrid.Children.Add(overlay);
+            }
+            Grid.SetRow(pWrapperGrid, row);
+            _col.Children.Add(pWrapperGrid);
         }
     }
 
