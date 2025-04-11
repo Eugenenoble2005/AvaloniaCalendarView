@@ -56,9 +56,10 @@ internal class MonthView : ContentControl, ICalendarView
     private void SetDateColumnContent(Grid _col)
     {
         int col = Grid.GetColumn(_col);
-        for (int row = 0; row < 5; row++)
+        int numberOfRows = ViewDate.Month == 2 && new DateOnly(ViewDate.Year, ViewDate.Month, 1).DayOfWeek == 0 ? 4 : 5;
+        for (int row = 0; row < numberOfRows; row++)
         {
-            Thickness thickness = new(1, 1, col == 6 ? 1 : 0, row == 4 ? 1 : 0);
+            Thickness thickness = new(1, 1, col == 6 ? 1 : 0, row == numberOfRows - 1 ? 1 : 0);
             Border colBorder = new() { BorderBrush = Brushes.Gray, BorderThickness = thickness };
             colBorder.Classes.Add("avalonia_calendar_view_gridcell");
             Grid pWrapperGrid = new();
@@ -81,12 +82,11 @@ internal class MonthView : ContentControl, ICalendarView
             else
             {
                 dateOfThisCell = new(ViewDate.Year, ViewDate.Month, int.Parse(squaredate));
-                // Console.WriteLine(dateOfThisCell);
             }
             //get all events that fall on this date, ignoring time
             var eventsOnThisDate = DateEvents.Where(p =>
-                DateOnly.FromDateTime(dateOfThisCell) >= DateOnly.FromDateTime(p.Start) &&
-                DateOnly.FromDateTime(dateOfThisCell) <= DateOnly.FromDateTime(p.End)
+                dateOfThisCell.Date >= p.Start.Date &&
+                dateOfThisCell.Date <= p.End.Date
             );
             if (eventsOnThisDate.Count() > 0)
             {
@@ -107,7 +107,6 @@ internal class MonthView : ContentControl, ICalendarView
                 eventCounterTextBlockBorder.Child = eventCounterTextBlock;
                 p.Children.Add(eventCounterTextBlockBorder);
             }
-
             //draw the events
             WrapPanel eventsHolder = new() { VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom };
             foreach (CalendarEvent _event in eventsOnThisDate)
@@ -130,7 +129,6 @@ internal class MonthView : ContentControl, ICalendarView
             _col.Children.Add(pWrapperGrid);
         }
     }
-
     ///<summary>
     /// Gets the date that will be displayed on the month grid cell
     /// </summary>

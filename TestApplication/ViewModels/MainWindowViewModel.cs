@@ -51,7 +51,7 @@ public partial class MainWindowViewModel : ViewModelBase
         new() {
             Title = "a 3 day event",
             BackgroundBrush = Brushes.Red,
-            Start = new DateTime(2025,4,8,0,0,0),
+            Start = new DateTime(2025,4,8,4,0,0),
             End = new(2025,4,10,7,15,0)
         },
         new(){
@@ -63,7 +63,7 @@ public partial class MainWindowViewModel : ViewModelBase
         new(){
             Title = "A draggable event",
             BackgroundBrush = Brushes.Snow,
-            Start = new(2025,4,9,2,0,0),
+            Start = new(2025,4,9,2,15,0),
             End= new(2025,4,9,9,15,0)
         }
     };
@@ -73,18 +73,6 @@ public partial class MainWindowViewModel : ViewModelBase
     }
     public MainWindowViewModel()
     {
-        // for (int i = 0; i < 25; i++)
-        // {
-        //     Events.Add(
-        //         new()
-        //         {
-        //             Title = $"Event {i}",
-        //             Start = DateTime.Now,
-        //             End = DateTime.Now.AddDays(2),
-        //             BackgroundBrush = Brushes.Green
-        //         }
-        //     );
-        // }
     }
     public void Month() => ViewType = ViewType.Month;
     public void Week() => ViewType = ViewType.Week;

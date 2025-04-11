@@ -35,7 +35,7 @@ internal class WeekView : ContentControl, ICalendarView
         {
             var date = sunday.AddDays(i - 1);
             Thickness thickness = new(1, 1, i == 7 ? 1 : 0, 1);
-            Border pb = new() { BorderThickness = thickness, BorderBrush = Brushes.Gray, MinHeight = 30, Padding = new(0,5,0,5) };
+            Border pb = new() { BorderThickness = thickness, BorderBrush = Brushes.Gray, MinHeight = 30, Padding = new(0, 5, 0, 5) };
             if (i == 0)
             {
                 Panel p = new() { Width = 80 };
@@ -62,6 +62,8 @@ internal class WeekView : ContentControl, ICalendarView
             Grid pGrid = new() { RowDefinitions = new(gridstring) };
             Grid.SetColumn(pGrid, i);
             SetColumnContent(pGrid, i == 0 ? new() : columnDates[i - 1]);
+            //draw events after drawing a full column
+            DrawEvents(pGrid, i == 0 ? new() : columnDates[i - 1]);
             dateGrid.Children.Add(pGrid);
         }
         MainGrid.Children.Add(dateGrid);
@@ -78,9 +80,6 @@ internal class WeekView : ContentControl, ICalendarView
             colBorder.Classes.Add("avalonia_calendar_view_gridcell");
             Panel p = new() { HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch };
             DateTime celldate = new(columnDate.Year, columnDate.Month, columnDate.Day, hour.Hour, hour.Minute, 0);
-            var eventsOnThisHour = DateEvents.Where(p =>
-              celldate >= p.Start && celldate <= p.End
-            );
             if (row == 0 && col == 0)
             {
                 p.Width = 80;
@@ -94,23 +93,29 @@ internal class WeekView : ContentControl, ICalendarView
                     p.Children.Add(textblock);
                 }
             }
-            string gridconfig = string.Concat(Enumerable.Repeat("*,", eventsOnThisHour.Count())).TrimEnd(',');
-            var colGrid = new Grid() { ColumnDefinitions = new(gridconfig), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch };
-            int index = 0;
-            foreach (var _event in eventsOnThisHour)
-            {
-                Border eventBorder = new() { Background = _event.BackgroundBrush, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch };
-                eventBorder.BorderBrush = Brushes.Red;
-                Grid.SetColumn(eventBorder, index);
-                colGrid.Children.Add(eventBorder);
-                colBorder.BorderThickness = new(0);
-                index++;
-            }
-            p.Children.Add(colGrid);
             colBorder.Child = p;
             Grid.SetRow(colBorder, row);
             _col.Children.Add(colBorder);
             hour = hour.AddMinutes(30);
+
+        }
+    }
+    private void DrawEvents(Grid col, DateTime columnDate)
+    {
+        var eventsOnThisDay = DateEvents.Where(p =>
+            columnDate.Date >= p.Start.Date && columnDate.Date <= p.End.Date
+        );
+        foreach (var _event in eventsOnThisDay)
+        {
+            //obtain start and end hours relative to the current column
+            TimeOnly hourStart = _event.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.Start) : new(0, 0);
+            TimeOnly hourEnd = _event.End.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.End) : new(23, 59);
+
+            //we need to find the first cell
+            Console.WriteLine(_event.Title);
+            int indexOfFirstCell = hourStart.Hour * 2 + (hourStart.Minute >= 30 ? 1 : 0);
+            Console.WriteLine(hourStart.Hour);
+            Console.WriteLine(indexOfFirstCell);
         }
     }
 }
