@@ -50,27 +50,33 @@ public partial class MainWindowViewModel : ViewModelBase
     public List<CalendarEvent> _events = new() {
         new() {
             Title = "a 3 day event",
-            BackgroundBrush = Brushes.IndianRed,
-            Start = new DateTime(2025,4,8,4,0,0),
-            End = new(2025,4,10,7,15,0)
+            BackgroundBrush = Brushes.Green,
+            Start = new DateTime(2025,4,8,4,43,0),
+            End = new(2025,4,10,7,29,0)
         },
         new(){
             Title="a long event",
             BackgroundBrush = Brushes.Blue,
-            Start = new(2025,4,27,5,30,0),
-            End = new(2025,5,3,23,59,0),
+            Start = new(2025,4,27,5,34,0),
+            End = new(2025,5,3,23,55,0),
         },
         new(){
             Title = "A draggable event",
             BackgroundBrush = Brushes.Peru,
-            Start = new(2025,4,9,6,15,0),
+            Start = new(2025,4,9,6,40,0),
             End= new(2025,4,9,9,15,0)
         },
         new(){
             Title = "A draggable event",
-            BackgroundBrush = Brushes.AliceBlue,
-            Start = new(2025,4,9,5,15,0),
-            End= new(2025,4,9,9,15,0)
+            BackgroundBrush = Brushes.Blue,
+            Start = new(2025,4,9,5,25,0),
+            End= new(2025,4,9,9,48,0)
+        },
+        new(){
+            Title = "My Event",
+            BackgroundBrush = Brushes.Red,
+            Start = new(2025,4,10,9,18,0),
+            End= new(2025,4,10,13,36,0)
         }
     };
     public void Today()

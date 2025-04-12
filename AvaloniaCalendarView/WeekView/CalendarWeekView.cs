@@ -73,6 +73,7 @@ internal class WeekView : ContentControl, ICalendarView
         dateGridOuter.Children.Add(DrawingCanvas);
         MainGrid.Children.Add(dateGridOuter);
         Content = MainGrid;
+
     }
     private void SetColumnContent(Grid _col, DateTime columnDate)
     {
@@ -110,6 +111,8 @@ internal class WeekView : ContentControl, ICalendarView
             columnDate.Date >= p.Start.Date && columnDate.Date <= p.End.Date
         );
         int gridColumns = eventsOnThisDay.Count();
+        //when there are multiple events on one day, we will grid them and sort them by the GUID
+        var arrayOfGuids = eventsOnThisDay.Select(p => p.EventID).ToArray();
         foreach (var _event in eventsOnThisDay)
         {
             //obtain start and end hours relative to the current column
@@ -122,44 +125,89 @@ internal class WeekView : ContentControl, ICalendarView
             {
                 if (e.Property == Border.BoundsProperty)
                 {
-                    DrawEventOnCanvas(_event, firstcell.Bounds, Grid.GetColumn(col), indexOfFirstCell, indexOfLastCell, gridColumns);
+                    DrawEventOnCanvas(_event,
+                                     firstcell.Bounds,
+                                     Grid.GetColumn(col),
+                                     indexOfFirstCell,
+                                     indexOfLastCell,
+                                     gridColumns,
+                                     Array.IndexOf(arrayOfGuids, _event.EventID),
+                                     columnDate);
                 }
             };
         }
     }
-    private void DrawEventOnCanvas(CalendarEvent _event, Rect bounds, int column, int indexOfFirstCell, int indexOfLastCell, int numberOfGridColumns = 0)
+    private void DrawEventOnCanvas(CalendarEvent _event, Rect bounds, int column, int indexOfFirstCell, int indexOfLastCell, int numberOfGridColumns, int eventGridColumn, DateTime columnDate)
     {
         //prevent drawing the same border more than once
-        DrawingCanvas.Children.RemoveAll(DrawingCanvas.Children.Where(b => b is EventBorder bE && (bE.Guid == _event.EventID && bE.Column == column)));
+        DrawingCanvas.Children.RemoveAll(DrawingCanvas.Children.Where(b => b is EventBorder bE && (bE.Column == column) && bE.Guid == _event.EventID));
+        //calculate dimensions relative to the column
         var x = (bounds.X + ((column - 1) * bounds.Width)) + 7;
         var y = bounds.Y - 2;
         var height = bounds.Height + (bounds.Height * (indexOfLastCell - indexOfFirstCell));
         var width = bounds.Width - 10;
 
+        //calculate the offset to precisely place the borders of the event
+        double start_correction_offset = 0;
+        if (columnDate.Date == _event.Start.Date)
+        {
+            int startMinute = _event.Start.Minute;
+            int anchor = _event.Start.Minute >= 30 ? 30 : 0;
+            int diff = startMinute - anchor;
+            double factor = ((double)diff / 30) * bounds.Height;
+            y += factor;
+            start_correction_offset = factor;
+        }
+        if (columnDate.Date == _event.End.Date)
+        {
+            int endMinute = _event.End.Minute;
+            int anchor = _event.End.Minute >= 30 ? 30 : 0;
+            int diff = 30 - (endMinute - anchor);
+            double factor = ((double)diff / 30) * bounds.Height;
+            height -= (factor + start_correction_offset);
+        }
+        //calculate grid layout when more than one event fall on the same day
         if (numberOfGridColumns > 1)
         {
             width = width / numberOfGridColumns;
-            //how many borders have already been drawn in this column?
-            int count = DrawingCanvas.Children.Where(p => p is EventBorder bE && bE.Column == column).Count();
-            Console.WriteLine(count);
-            x += (count * width);
+            //place eventborders as collected by GUID
+            x += (eventGridColumn * width);
         }
         EventBorder p = new()
         {
             Height = height,
             Width = width,
-            Background = _event.BackgroundBrush,
+            Background = _event.DullBackgroundBrush(),
             CornerRadius = new(10),
             BoxShadow = new(new() { Color = Colors.Black, IsInset = true }),
             Guid = _event.EventID,
-            Column = column
+            BorderThickness = new(2),
+            BorderBrush = _event.BackgroundBrush,
+            Column = column,
         };
+        var eventname = new TextBlock()
+        {
+            Text = _event.Title,
+            TextAlignment = TextAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            FontSize = 15,
+        };
+        var eventtime = new TextBlock()
+        {
+            Text = $"{_event.Start.ToString("d, MMMM yyyy h:mm tt ")} - {_event.End.ToString("d, MMM yyyy h:mm tt")}",
+            TextAlignment = TextAlignment.Center,
+            FontSize = 10,
+            TextWrapping = TextWrapping.Wrap
+        };
+        StackPanel childContent = new() { Orientation = Avalonia.Layout.Orientation.Vertical, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch };
+        childContent.Children.Add(eventname);
+        childContent.Children.Add(eventtime);
+        p.Child = childContent;
         Canvas.SetTop(p, y);
         Canvas.SetLeft(p, x);
         DrawingCanvas.Children.Add(p);
     }
 }
-
 internal class EventBorder : Border
 {
     //the column of the date grid, represents the day of the grid

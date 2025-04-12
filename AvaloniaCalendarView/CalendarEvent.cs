@@ -25,7 +25,7 @@ public class CalendarEvent
     ///<summary>
     /// The Brush that paints the background of the event
     /// </summary>
-    public IBrush? BackgroundBrush = Brushes.Blue;
+    public IBrush BackgroundBrush = Brushes.Blue;
 
     ///<summary>
     /// The Brush that paints the foreground of the event
@@ -37,6 +37,21 @@ public class CalendarEvent
     // </summary>
     public bool Resizable = false;
 
-    public Guid EventID {get;} = Guid.CreateVersion7();
+    public Guid EventID { get; } = Guid.CreateVersion7();
+
+    public IBrush DullBackgroundBrush()
+    {
+        if (BackgroundBrush is ISolidColorBrush scBrush)
+        {
+            var dullColor = Color.FromArgb(
+                scBrush.Color.A, // preserve alpha
+                (byte)(scBrush.Color.R * 0.6 + 80 * 0.4), // mix with gray
+                (byte)(scBrush.Color.G * 0.6 + 80 * 0.4),
+                (byte)(scBrush.Color.B * 0.6 + 80 * 0.4)
+            );
+            return new SolidColorBrush(dullColor);
+        }
+        else return BackgroundBrush;
+    }
 
 }
