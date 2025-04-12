@@ -37,4 +37,6 @@ public class CalendarEvent
     // </summary>
     public bool Resizable = false;
 
+    public Guid EventID {get;} = Guid.CreateVersion7();
+
 }

@@ -50,7 +50,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public List<CalendarEvent> _events = new() {
         new() {
             Title = "a 3 day event",
-            BackgroundBrush = Brushes.Red,
+            BackgroundBrush = Brushes.IndianRed,
             Start = new DateTime(2025,4,8,4,0,0),
             End = new(2025,4,10,7,15,0)
         },
@@ -62,8 +62,14 @@ public partial class MainWindowViewModel : ViewModelBase
         },
         new(){
             Title = "A draggable event",
-            BackgroundBrush = Brushes.Snow,
-            Start = new(2025,4,9,2,15,0),
+            BackgroundBrush = Brushes.Peru,
+            Start = new(2025,4,9,6,15,0),
+            End= new(2025,4,9,9,15,0)
+        },
+        new(){
+            Title = "A draggable event",
+            BackgroundBrush = Brushes.AliceBlue,
+            Start = new(2025,4,9,5,15,0),
             End= new(2025,4,9,9,15,0)
         }
     };
