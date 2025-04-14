@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -113,6 +114,12 @@ internal class WeekView : ContentControl, ICalendarView
         int gridColumns = eventsOnThisDay.Count();
         //when there are multiple events on one day, we will grid them and sort them by the GUID
         var arrayOfGuids = eventsOnThisDay.Select(p => p.EventID).ToArray();
+
+        //this is used to look for intersections with other events on the same day so we can draw the event full width if it will not intersect with other events
+        List<List<TimeOnly>> hourStartEndList = eventsOnThisDay.Select(p => new List<TimeOnly> {
+            p.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(p.Start) : new(0,0),
+            p.End.Date == columnDate.Date ? TimeOnly.FromDateTime(p.End) : new(23,59)
+        }).ToList();
         foreach (var _event in eventsOnThisDay)
         {
             //obtain start and end hours relative to the current column
@@ -121,92 +128,132 @@ internal class WeekView : ContentControl, ICalendarView
             int indexOfFirstCell = hourStart.Hour * 2 + (hourStart.Minute >= 30 ? 1 : 0);
             int indexOfLastCell = hourEnd.Hour * 2 + (hourEnd.Minute >= 30 ? 1 : 0);
             var firstcell = (Border)col.Children.Where(p => p is Border colBorder).ToList()[indexOfFirstCell];
+            //remove the hourStart and hourEnd of this list from the list above
+            var filteredHourStartEndList = hourStartEndList
+                .Where(p => !(p[0] == hourStart && p[1] == hourEnd))
+                .ToList();
             firstcell.PropertyChanged += (s, e) =>
             {
                 if (e.Property == Border.BoundsProperty)
                 {
                     DrawEventOnCanvas(_event,
-                                     firstcell.Bounds,
-                                     Grid.GetColumn(col),
-                                     indexOfFirstCell,
-                                     indexOfLastCell,
-                                     gridColumns,
-                                     Array.IndexOf(arrayOfGuids, _event.EventID),
-                                     columnDate);
+                                    firstcell.Bounds,
+                                    Grid.GetColumn(col),
+                                    indexOfFirstCell,
+                                    indexOfLastCell,
+                                    gridColumns,
+                                    Array.IndexOf(arrayOfGuids, _event.EventID),
+                                    columnDate,
+                                    filteredHourStartEndList,
+                                    new List<TimeOnly>() { hourStart, hourEnd }
+                                    );
                 }
             };
         }
     }
-    private void DrawEventOnCanvas(CalendarEvent _event, Rect bounds, int column, int indexOfFirstCell, int indexOfLastCell, int numberOfGridColumns, int eventGridColumn, DateTime columnDate)
-    {
-        //prevent drawing the same border more than once
-        DrawingCanvas.Children.RemoveAll(DrawingCanvas.Children.Where(b => b is EventBorder bE && (bE.Column == column) && bE.Guid == _event.EventID));
-        //calculate dimensions relative to the column
-        var x = (bounds.X + ((column - 1) * bounds.Width)) + 7;
-        var y = bounds.Y - 2;
-        var height = bounds.Height + (bounds.Height * (indexOfLastCell - indexOfFirstCell));
-        var width = bounds.Width - 10;
+    private void DrawEventOnCanvas(
+    CalendarEvent calendarEvent,
+    Rect bounds,
+    int column,
+    int indexOfFirstCell,
+    int indexOfLastCell,
+    int numberOfGridColumns,
+    int eventGridColumn,
+    DateTime columnDate,
+    List<List<TimeOnly>> hourStartEndList,
+    List<TimeOnly> hourStartEnd)
+{
+    // Prevent drawing the same border more than once
+    DrawingCanvas.Children.RemoveAll(
+        DrawingCanvas.Children
+            .OfType<EventBorder>()
+            .Where(b => b.Column == column && b.Guid == calendarEvent.EventID)
+    );
 
-        //calculate the offset to precisely place the borders of the event
-        double start_correction_offset = 0;
-        if (columnDate.Date == _event.Start.Date)
-        {
-            int startMinute = _event.Start.Minute;
-            int anchor = _event.Start.Minute >= 30 ? 30 : 0;
-            int diff = startMinute - anchor;
-            double factor = ((double)diff / 30) * bounds.Height;
-            y += factor;
-            start_correction_offset = factor;
-        }
-        if (columnDate.Date == _event.End.Date)
-        {
-            int endMinute = _event.End.Minute;
-            int anchor = _event.End.Minute >= 30 ? 30 : 0;
-            int diff = 30 - (endMinute - anchor);
-            double factor = ((double)diff / 30) * bounds.Height;
-            height -= (factor + start_correction_offset);
-        }
-        //calculate grid layout when more than one event fall on the same day
-        if (numberOfGridColumns > 1)
-        {
-            width = width / numberOfGridColumns;
-            //place eventborders as collected by GUID
-            x += (eventGridColumn * width);
-        }
-        EventBorder p = new()
-        {
-            Height = height,
-            Width = width,
-            Background = _event.DullBackgroundBrush(),
-            CornerRadius = new(10),
-            BoxShadow = new(new() { Color = Colors.Black, IsInset = true }),
-            Guid = _event.EventID,
-            BorderThickness = new(2),
-            BorderBrush = _event.BackgroundBrush,
-            Column = column,
-        };
-        var eventname = new TextBlock()
-        {
-            Text = _event.Title,
-            TextAlignment = TextAlignment.Center,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            FontSize = 15,
-        };
-        var eventtime = new TextBlock()
-        {
-            Text = $"{_event.Start.ToString("d, MMMM yyyy h:mm tt ")} - {_event.End.ToString("d, MMM yyyy h:mm tt")}",
-            TextAlignment = TextAlignment.Center,
-            FontSize = 10,
-            TextWrapping = TextWrapping.Wrap
-        };
-        StackPanel childContent = new() { Orientation = Avalonia.Layout.Orientation.Vertical, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch };
-        childContent.Children.Add(eventname);
-        childContent.Children.Add(eventtime);
-        p.Child = childContent;
-        Canvas.SetTop(p, y);
-        Canvas.SetLeft(p, x);
-        DrawingCanvas.Children.Add(p);
+    // Calculate base position and size
+    double x = (bounds.X + ((column - 1) * bounds.Width)) + 7;
+    double y = bounds.Y - 2;
+    double height = bounds.Height + (bounds.Height * (indexOfLastCell - indexOfFirstCell));
+    double width = bounds.Width - 10;
+
+    // Offset for partial hour start
+    double startCorrectionOffset = 0;
+    if (columnDate.Date == calendarEvent.Start.Date)
+    {
+        int anchor = calendarEvent.Start.Minute >= 30 ? 30 : 0;
+        int diff = calendarEvent.Start.Minute - anchor;
+        double offset = (diff / 30.0) * bounds.Height;
+        y += offset;
+        startCorrectionOffset = offset;
     }
+
+    // Offset for partial hour end
+    if (columnDate.Date == calendarEvent.End.Date)
+    {
+        int anchor = calendarEvent.End.Minute >= 30 ? 30 : 0;
+        int diff = 30 - (calendarEvent.End.Minute - anchor);
+        double offset = (diff / 30.0) * bounds.Height;
+        height -= (offset + startCorrectionOffset);
+    }
+
+    // Calculate event stacking for overlaps
+    int intersections = hourStartEndList.Count(p =>
+        hourStartEnd[0] < p[1] && p[0] < hourStartEnd[1]
+    );
+
+    if (numberOfGridColumns > 1 && intersections > 0)
+    {
+        width /= numberOfGridColumns;
+        x += eventGridColumn * width;
+    }
+
+    // Create event border
+    var border = new EventBorder
+    {
+        Height = height,
+        Width = width,
+        Background = calendarEvent.DullBackgroundBrush(),
+        CornerRadius = new(10),
+        BoxShadow = new(new() { Color = Colors.Black, IsInset = true }),
+        Guid = calendarEvent.EventID,
+        BorderThickness = new(2),
+        BorderBrush = calendarEvent.BackgroundBrush,
+        Column = column
+    };
+
+    // Create event content
+    var titleText = new TextBlock
+    {
+        Text = calendarEvent.Title,
+        TextAlignment = TextAlignment.Center,
+        TextTrimming = TextTrimming.CharacterEllipsis,
+        FontSize = 15
+    };
+
+    var timeText = new TextBlock
+    {
+        Text = $"{calendarEvent.Start:d, MMMM yyyy h:mm tt} - {calendarEvent.End:d, MMM yyyy h:mm tt}",
+        TextAlignment = TextAlignment.Center,
+        FontSize = 10,
+        TextWrapping = TextWrapping.Wrap
+    };
+
+    var contentPanel = new StackPanel
+    {
+        Orientation = Avalonia.Layout.Orientation.Vertical,
+        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch
+    };
+
+    contentPanel.Children.Add(titleText);
+    contentPanel.Children.Add(timeText);
+    border.Child = contentPanel;
+
+    // Position and add to canvas
+    Canvas.SetTop(border, y);
+    Canvas.SetLeft(border, x);
+    DrawingCanvas.Children.Add(border);
+}
 }
 internal class EventBorder : Border
 {

@@ -75,7 +75,7 @@ public partial class MainWindowViewModel : ViewModelBase
         new(){
             Title = "My Event",
             BackgroundBrush = Brushes.Red,
-            Start = new(2025,4,10,9,18,0),
+            Start = new(2025,4,10,7,30,0),
             End= new(2025,4,10,13,36,0)
         }
     };
