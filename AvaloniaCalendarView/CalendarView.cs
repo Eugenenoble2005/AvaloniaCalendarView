@@ -66,7 +66,7 @@ public class CalendarView : ContentControl
             case ViewType.Week:
                 return new WeekView.WeekView(ViewDate,DateEvents);
             case ViewType.Day:
-                return new DayView.DayView(ViewDate);
+                return new DayView.DayView(ViewDate, DateEvents);
             default: return new MonthView.MonthView(ViewDate, DateEvents);
         }
     }

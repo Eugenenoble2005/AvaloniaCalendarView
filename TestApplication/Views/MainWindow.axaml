@@ -36,7 +36,7 @@
             <TextBlock
                 Grid.Column="1"
                 FontSize="30"
-                Text="{Binding ViewDate, StringFormat='{}{0:MMMM yyyy}'}"
+                Text="{Binding ViewDate, StringFormat='{}{0:d MMMM yyyy}'}"
                 TextAlignment="Center" />
             <StackPanel
                 Grid.Column="2"
