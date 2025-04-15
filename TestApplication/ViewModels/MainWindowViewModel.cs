@@ -77,6 +77,60 @@ public partial class MainWindowViewModel : ViewModelBase
             BackgroundBrush = Brushes.Red,
             Start = new(2025,4,10,7,30,0),
             End= new(2025,4,10,13,36,0)
+        },
+        new() {
+            Title = "Check-in at hotel",
+            BackgroundBrush = Brushes.Gold,
+            Start = new(2025,4,13,14,0,0),
+            End = new(2025,4,13,18,0,0)
+        },
+        new() {
+            Title = "dinner",
+            BackgroundBrush = Brushes.Gold,
+            Start = new(2025,4,13,20,0,0),
+            End = new(2025,4,13,21,0,0)
+        },
+        new(){
+            Title = "Breakfast",
+            BackgroundBrush = Brushes.Blue,
+            Start = new(2025,4,14,9,0,0),
+            End = new(2025,4,14,10,0,0)
+        },
+        new(){
+            Title = "Breakfast",
+            BackgroundBrush = Brushes.Blue,
+            Start = new(2025,4,15,9,0,0),
+            End = new(2025,4,15,10,0,0)
+        },
+        new(){
+            Title = "Breakfast",
+            BackgroundBrush = Brushes.Blue,
+            Start = new(2025,4,16,9,0,0),
+            End = new(2025,4,16,10,0,0)
+        },
+        new(){
+            Title = "Breakfast",
+            BackgroundBrush = Brushes.Blue,
+            Start = new(2025,4,17,9,0,0),
+            End = new(2025,4,17,10,0,0)
+        },
+        new(){
+            Title = "Breakfast",
+            BackgroundBrush = Brushes.Blue,
+            Start = new(2025,4,18,9,0,0),
+            End = new(2025,4,18,10,0,0)
+        },
+        new(){
+            Title = "Breakfast",
+            BackgroundBrush = Brushes.Blue,
+            Start = new(2025,4,19,9,0,0),
+            End = new(2025,4,19,10,0,0)
+        },
+        new() {
+            Title = "scrumt",
+            BackgroundBrush = Brushes.Red,
+            Start = new(2025,4,14,10,12,0),
+            End = new(2025,4,14,12,0,0),
         }
     };
     public void Today()

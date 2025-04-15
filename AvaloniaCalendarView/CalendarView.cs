@@ -6,8 +6,8 @@ public class CalendarView : ContentControl
 {
     public static readonly StyledProperty<DateTime> ViewDateProperty = AvaloniaProperty.Register<CalendarView, DateTime>(nameof(ViewDate), DateTime.Now);
     public static readonly StyledProperty<ViewType> ViewTypeProperty = AvaloniaProperty.Register<CalendarView, ViewType>(nameof(ViewType));
-
     public static readonly StyledProperty<IEnumerable<CalendarEvent>> DateEventsProperty = AvaloniaProperty.Register<CalendarView, IEnumerable<CalendarEvent>>(nameof(DateEvents));
+    public static readonly StyledProperty<uint> HourDurationProperty = AvaloniaProperty.Register<CalendarView, uint>(nameof(HourDuration), 60);
 
     public DateTime ViewDate
     {
@@ -24,6 +24,12 @@ public class CalendarView : ContentControl
     {
         get => GetValue(ViewTypeProperty);
         set => SetValue(ViewTypeProperty, value);
+    }
+
+    public uint HourDuration
+    {
+        get => GetValue(HourDurationProperty);
+        set => SetValue(HourDurationProperty, value);
     }
 
     public CalendarView()
@@ -59,14 +65,17 @@ public class CalendarView : ContentControl
     }
     private ICalendarView GetView()
     {
+        if(HourDuration < 10) {
+            throw new Exception("Hour Duration is too small, minimum value of 10 is accepted");
+        }
         switch (ViewType)
         {
             case ViewType.Month:
                 return new MonthView.MonthView(ViewDate, DateEvents);
             case ViewType.Week:
-                return new WeekView.WeekView(ViewDate,DateEvents);
+                return new WeekView.WeekView(ViewDate, DateEvents, HourDuration);
             case ViewType.Day:
-                return new DayView.DayView(ViewDate, DateEvents);
+                return new DayView.DayView(ViewDate, DateEvents, HourDuration);
             default: return new MonthView.MonthView(ViewDate, DateEvents);
         }
     }

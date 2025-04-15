@@ -9,11 +9,14 @@ internal class WeekView : ContentControl, ICalendarView
 
     private readonly String[] _daysArray = new String[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
     private readonly EventDrawer _eventDrawer;
-    public WeekView(DateTime _dateTime, IEnumerable<CalendarEvent> _dateEvents)
+    private readonly uint _hourDuration = 60;
+    private uint _cellDuration => _hourDuration / 2;
+    public WeekView(DateTime _dateTime, IEnumerable<CalendarEvent> _dateEvents, uint hourDuration)
     {
         ViewDate = _dateTime;
         DateEvents = _dateEvents;
-        _eventDrawer = new(DateEvents, DrawingCanvas);
+        _hourDuration = hourDuration;
+        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration);
         try
         {
             Initialize();
@@ -55,11 +58,11 @@ internal class WeekView : ContentControl, ICalendarView
             dayNameGrid.Children.Add(pb);
         }
         MainGrid.Children.Add(dayNameGrid);
-        // 48x7 grid for hours
         Grid dateGridOuter = new();
         Grid dateGrid = new() { ColumnDefinitions = new("Auto,*,*,*,*,*,*,*") };
         Grid.SetRow(dateGridOuter, 1);
-        string gridstring = string.Concat(Enumerable.Repeat("*,", 48)).TrimEnd(',');
+        int numberOfRows = (int)Math.Ceiling((double)(24 * 60) / _cellDuration);
+        string gridstring = string.Concat(Enumerable.Repeat("*,", numberOfRows)).TrimEnd(',');
         for (int i = 0; i < 8; i++)
         {
             Grid pGrid = new() { RowDefinitions = new(gridstring) };
@@ -78,7 +81,8 @@ internal class WeekView : ContentControl, ICalendarView
     {
         int col = Grid.GetColumn(_col);
         TimeOnly hour = new(0, 0);
-        for (int row = 0; row < 48; row++)
+        int numberOfRows = (int)Math.Ceiling((double)(24 * 60) / _cellDuration);
+        for (int row = 0; row < numberOfRows; row++)
         {
             Thickness thickness = new(1, 0, col == 7 ? 1 : 0, 1);
             Border colBorder = new() { BorderBrush = Brushes.Gray, BorderThickness = thickness, MinHeight = 30 };
@@ -93,7 +97,7 @@ internal class WeekView : ContentControl, ICalendarView
             {
                 if (col == 0)
                 {
-                    var squaretime = hour.ToString("h tt");
+                    var squaretime = hour.ToString("h:mm tt");
                     var textblock = new TextBlock() { Text = squaretime, TextAlignment = Avalonia.Media.TextAlignment.Center, FontSize = 15, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
                     p.Children.Add(textblock);
                 }
@@ -101,7 +105,7 @@ internal class WeekView : ContentControl, ICalendarView
             colBorder.Child = p;
             Grid.SetRow(colBorder, row);
             _col.Children.Add(colBorder);
-            hour = hour.AddMinutes(30);
+            hour = hour.AddMinutes(_cellDuration);
         }
     }
 }

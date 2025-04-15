@@ -58,7 +58,7 @@ public class CalendarEvent
     }
 
 }
-internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas DrawingCanvas)
+internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas DrawingCanvas, int CellDuration = 30)
 {
     public void DrawEvents(Grid col, DateTime columnDate)
     {
@@ -79,8 +79,9 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
             //obtain start and end hours relative to the current column
             TimeOnly hourStart = _event.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.Start) : new(0, 0);
             TimeOnly hourEnd = _event.End.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.End) : new(23, 59);
-            int indexOfFirstCell = hourStart.Hour * 2 + (hourStart.Minute >= 30 ? 1 : 0);
-            int indexOfLastCell = hourEnd.Hour * 2 + (hourEnd.Minute >= 30 ? 1 : 0);
+            int cellsPerHour = 60 / CellDuration;
+            int indexOfFirstCell = hourStart.Hour * cellsPerHour + (hourStart.Minute >= CellDuration ? 1 : 0);
+            int indexOfLastCell = hourEnd.Hour * cellsPerHour + (hourEnd.Minute >= CellDuration ? 1 : 0);
             var firstcell = (Border)col.Children.Where(p => p is Border colBorder).ToList()[indexOfFirstCell];
             //remove the hourStart and hourEnd of this list from the list above
             var filteredHourStartEndList = hourStartEndList
@@ -99,7 +100,8 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
                                     Array.IndexOf(arrayOfGuids, _event.EventID),
                                     columnDate,
                                     filteredHourStartEndList,
-                                    new List<TimeOnly>() { hourStart, hourEnd }
+                                    new List<TimeOnly>() { hourStart, hourEnd },
+                                    CellDuration
                                     );
                 }
             };
@@ -115,7 +117,9 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
         int eventGridColumn,
         DateTime columnDate,
         List<List<TimeOnly>> hourStartEndList,
-        List<TimeOnly> hourStartEnd)
+        List<TimeOnly> hourStartEnd,
+        int cellDuration
+        )
     {
         // Prevent drawing the same border more than once
         DrawingCanvas.Children.RemoveAll(
@@ -134,9 +138,9 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
         double startCorrectionOffset = 0;
         if (columnDate.Date == calendarEvent.Start.Date)
         {
-            int anchor = calendarEvent.Start.Minute >= 30 ? 30 : 0;
+            int anchor = calendarEvent.Start.Minute >= (int)cellDuration ? (int)cellDuration : 0;
             int diff = calendarEvent.Start.Minute - anchor;
-            double offset = (diff / 30.0) * bounds.Height;
+            double offset = (diff / (double)cellDuration) * bounds.Height;
             y += offset;
             startCorrectionOffset = offset;
         }
@@ -144,9 +148,9 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
         // Offset for partial hour end
         if (columnDate.Date == calendarEvent.End.Date)
         {
-            int anchor = calendarEvent.End.Minute >= 30 ? 30 : 0;
-            int diff = 30 - (calendarEvent.End.Minute - anchor);
-            double offset = (diff / 30.0) * bounds.Height;
+            int anchor = calendarEvent.End.Minute >= (int)cellDuration ? (int)cellDuration : 0;
+            int diff = cellDuration - (calendarEvent.End.Minute - anchor);
+            double offset = (diff / (double)cellDuration) * bounds.Height;
             height -= (offset + startCorrectionOffset);
         }
 
@@ -161,7 +165,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
             x += eventGridColumn * width;
         }
 
-        // Create event border
+        // Create event bord/r
         var border = new EventBorder
         {
             Height = height,
