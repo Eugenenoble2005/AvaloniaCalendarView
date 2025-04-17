@@ -144,7 +144,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
         double startCorrectionOffset = 0;
         if (columnDate.Date == calendarEvent.Start.Date)
         {
-            var celldate = new TimeOnly(dayStartHour).AddMinutes(indexOfFirstCell * CellDuration);
+            var celldate = new TimeOnly(dayStartHour, 0).AddMinutes(indexOfFirstCell * CellDuration);
             var diff = (TimeOnly.FromDateTime(calendarEvent.Start) - celldate).TotalMinutes;
             double offset = (diff / (double)CellDuration) * bounds.Height;
             y += offset;
@@ -154,7 +154,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
         // Offset for partial hour end
         if (columnDate.Date == calendarEvent.End.Date)
         {
-            var celldate = new TimeOnly(dayStartHour).AddMinutes(indexOfLastCell * CellDuration);
+            var celldate = new TimeOnly(dayStartHour, 0).AddMinutes(indexOfLastCell * CellDuration);
             var diff = CellDuration - (TimeOnly.FromDateTime(calendarEvent.End) - celldate).TotalMinutes;
             double offset = (diff / (double)CellDuration) * bounds.Height;
             height -= (offset + startCorrectionOffset);
