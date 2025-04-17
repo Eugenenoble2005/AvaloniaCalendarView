@@ -58,7 +58,7 @@ public class CalendarEvent
     }
 
 }
-internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas DrawingCanvas, int CellDuration = 30)
+internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas DrawingCanvas, int CellDuration)
 {
     public void DrawEvents(Grid col, DateTime columnDate)
     {
@@ -79,9 +79,10 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
             //obtain start and end hours relative to the current column
             TimeOnly hourStart = _event.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.Start) : new(0, 0);
             TimeOnly hourEnd = _event.End.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.End) : new(23, 59);
-            int cellsPerHour = 60 / CellDuration;
-            int indexOfFirstCell = hourStart.Hour * cellsPerHour + (hourStart.Minute >= CellDuration ? 1 : 0);
-            int indexOfLastCell = hourEnd.Hour * cellsPerHour + (hourEnd.Minute >= CellDuration ? 1 : 0);
+            int hourStartInMinutes = (hourStart.Hour * 60) + hourStart.Minute;
+            int hourEndInMinutes = (hourEnd.Hour * 60) + hourEnd.Minute;
+            int indexOfFirstCell = hourStartInMinutes / CellDuration;
+            int indexOfLastCell = hourEndInMinutes / CellDuration;
             var firstcell = (Border)col.Children.Where(p => p is Border colBorder).ToList()[indexOfFirstCell];
             //remove the hourStart and hourEnd of this list from the list above
             var filteredHourStartEndList = hourStartEndList
@@ -100,8 +101,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
                                     Array.IndexOf(arrayOfGuids, _event.EventID),
                                     columnDate,
                                     filteredHourStartEndList,
-                                    new List<TimeOnly>() { hourStart, hourEnd },
-                                    CellDuration
+                                    new List<TimeOnly>() { hourStart, hourEnd }
                                     );
                 }
             };
@@ -117,8 +117,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
         int eventGridColumn,
         DateTime columnDate,
         List<List<TimeOnly>> hourStartEndList,
-        List<TimeOnly> hourStartEnd,
-        int cellDuration
+        List<TimeOnly> hourStartEnd
         )
     {
         // Prevent drawing the same border more than once
@@ -138,19 +137,29 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
         double startCorrectionOffset = 0;
         if (columnDate.Date == calendarEvent.Start.Date)
         {
-            int anchor = calendarEvent.Start.Minute >= (int)cellDuration ? (int)cellDuration : 0;
-            int diff = calendarEvent.Start.Minute - anchor;
-            double offset = (diff / (double)cellDuration) * bounds.Height;
+            int p = 0;
+            while (true)
+            {
+                if (calendarEvent.Start.Minute >= p && (calendarEvent.Start.Minute - p) < CellDuration) break;
+                p += CellDuration;
+            }
+            int diff = calendarEvent.Start.Minute - p;
+            double offset = (diff / (double)CellDuration) * bounds.Height;
             y += offset;
             startCorrectionOffset = offset;
         }
 
-        // Offset for partial hour end
+        // // Offset for partial hour end
         if (columnDate.Date == calendarEvent.End.Date)
         {
-            int anchor = calendarEvent.End.Minute >= (int)cellDuration ? (int)cellDuration : 0;
-            int diff = cellDuration - (calendarEvent.End.Minute - anchor);
-            double offset = (diff / (double)cellDuration) * bounds.Height;
+            int p = 0;
+            while (true)
+            {
+                if (calendarEvent.End.Minute >= p && (calendarEvent.End.Minute - p) <= CellDuration) break;
+                p += CellDuration;
+            }
+            int diff = CellDuration - (calendarEvent.End.Minute - p);
+            double offset = (diff / (double)CellDuration) * bounds.Height;
             height -= (offset + startCorrectionOffset);
         }
 
@@ -192,7 +201,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
         {
             Text = $"{calendarEvent.Start:d, MMMM yyyy h:mm tt} - {calendarEvent.End:d, MMM yyyy h:mm tt}",
             TextAlignment = TextAlignment.Center,
-            FontSize = 10,
+            FontSize = 13,
             TextWrapping = TextWrapping.Wrap
         };
 

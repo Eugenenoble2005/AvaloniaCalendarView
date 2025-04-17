@@ -48,10 +48,7 @@ internal class DayView : ContentControl, ICalendarView
             Panel p = new() { Height = 20 };
             if ((i == 0 || i % 2 == 0))
             {
-                if (i != 0)
-                {
-                }
-                    var squaretime = hour.ToString("h:mm tt");
+                var squaretime = hour.ToString("h:mm tt");
                 var textblock = new TextBlock() { Text = squaretime, TextAlignment = Avalonia.Media.TextAlignment.Center, FontSize = 15 };
                 p.Children.Add(textblock);
             }
