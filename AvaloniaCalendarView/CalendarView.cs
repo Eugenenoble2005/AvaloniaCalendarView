@@ -8,7 +8,8 @@ public class CalendarView : ContentControl
     public static readonly StyledProperty<ViewType> ViewTypeProperty = AvaloniaProperty.Register<CalendarView, ViewType>(nameof(ViewType));
     public static readonly StyledProperty<IEnumerable<CalendarEvent>> DateEventsProperty = AvaloniaProperty.Register<CalendarView, IEnumerable<CalendarEvent>>(nameof(DateEvents));
     public static readonly StyledProperty<uint> HourDurationProperty = AvaloniaProperty.Register<CalendarView, uint>(nameof(HourDuration), 60);
-
+    public static readonly StyledProperty<uint> DayStartHourProperty = AvaloniaProperty.Register<CalendarView, uint>(nameof(DayStartHour), 0);
+    public static readonly StyledProperty<uint> DayEndHourProperty = AvaloniaProperty.Register<CalendarView, uint>(nameof(DayEndHour), 23);
     public DateTime ViewDate
     {
         get => GetValue(ViewDateProperty);
@@ -29,11 +30,39 @@ public class CalendarView : ContentControl
     public uint HourDuration
     {
         get => GetValue(HourDurationProperty);
-        set => SetValue(HourDurationProperty, value);
+        set
+        {
+            if (value < 10)
+            {
+                throw new Exception("Hour duration is too small. Minimum of 10 minutes");
+            }
+            SetValue(HourDurationProperty, value);
+        }
     }
 
-    public CalendarView()
+    public uint DayStartHour
     {
+        get => GetValue(DayStartHourProperty);
+        set
+        {
+            if (value > 24 || value > DayEndHour)
+            {
+                throw new Exception($"Day start hour must be less than 24 and less than Day End Hour currently set to {DayEndHour}");
+            }
+            SetValue(DayStartHourProperty, value);
+        }
+    }
+    public uint DayEndHour
+    {
+        get => GetValue(DayEndHourProperty);
+        set
+        {
+            if (value > 24 || value < DayStartHour)
+            {
+                throw new Exception($"Day start hour must be less than 24 and greater than Day Start Hour currently set to {DayStartHour}");
+            }
+            SetValue(DayEndHourProperty, value);
+        }
     }
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
@@ -65,17 +94,14 @@ public class CalendarView : ContentControl
     }
     private ICalendarView GetView()
     {
-        if(HourDuration < 10) {
-            throw new Exception("Hour Duration is too small, minimum value of 10 is accepted");
-        }
         switch (ViewType)
         {
             case ViewType.Month:
                 return new MonthView.MonthView(ViewDate, DateEvents);
             case ViewType.Week:
-                return new WeekView.WeekView(ViewDate, DateEvents, HourDuration);
+                return new WeekView.WeekView(ViewDate, DateEvents, HourDuration, DayStartHour, DayEndHour);
             case ViewType.Day:
-                return new DayView.DayView(ViewDate, DateEvents, HourDuration);
+                return new DayView.DayView(ViewDate, DateEvents, HourDuration, DayStartHour, DayEndHour);
             default: return new MonthView.MonthView(ViewDate, DateEvents);
         }
     }

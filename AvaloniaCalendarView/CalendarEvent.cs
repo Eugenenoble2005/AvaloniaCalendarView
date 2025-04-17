@@ -58,7 +58,7 @@ public class CalendarEvent
     }
 
 }
-internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas DrawingCanvas, int CellDuration)
+internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas DrawingCanvas, int CellDuration, int dayStartHour)
 {
     public void DrawEvents(Grid col, DateTime columnDate)
     {
@@ -79,11 +79,18 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
             //obtain start and end hours relative to the current column
             TimeOnly hourStart = _event.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.Start) : new(0, 0);
             TimeOnly hourEnd = _event.End.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.End) : new(23, 59);
+            int gridStartInMinutes = dayStartHour * 60;
             int hourStartInMinutes = (hourStart.Hour * 60) + hourStart.Minute;
             int hourEndInMinutes = (hourEnd.Hour * 60) + hourEnd.Minute;
-            int indexOfFirstCell = hourStartInMinutes / CellDuration;
-            int indexOfLastCell = hourEndInMinutes / CellDuration;
-            var firstcell = (Border)col.Children.Where(p => p is Border colBorder).ToList()[indexOfFirstCell];
+            int indexOfFirstCell = (hourStartInMinutes - gridStartInMinutes) / CellDuration;
+            int indexOfLastCell = (hourEndInMinutes - gridStartInMinutes) / CellDuration;
+            var collection = col.Children.Where(p => p is Border colBorder).ToList();
+            //if the dayStartHour does not contain this
+            if (indexOfFirstCell < 0 || indexOfFirstCell >= collection.Count)
+            {
+                continue;
+            }
+            var firstcell = (Border)collection[indexOfFirstCell];
             //remove the hourStart and hourEnd of this list from the list above
             var filteredHourStartEndList = hourStartEndList
                 .Where(p => !(p[0] == hourStart && p[1] == hourEnd))
@@ -137,28 +144,18 @@ internal class EventDrawer(IEnumerable<CalendarEvent> DateEvents, Canvas Drawing
         double startCorrectionOffset = 0;
         if (columnDate.Date == calendarEvent.Start.Date)
         {
-            int p = 0;
-            while (true)
-            {
-                if (calendarEvent.Start.Minute >= p && (calendarEvent.Start.Minute - p) < CellDuration) break;
-                p += CellDuration;
-            }
-            int diff = calendarEvent.Start.Minute - p;
+            var celldate = new TimeOnly(dayStartHour).AddMinutes(indexOfFirstCell * CellDuration);
+            var diff = (TimeOnly.FromDateTime(calendarEvent.Start) - celldate).TotalMinutes;
             double offset = (diff / (double)CellDuration) * bounds.Height;
             y += offset;
             startCorrectionOffset = offset;
         }
 
-        // // Offset for partial hour end
+        // Offset for partial hour end
         if (columnDate.Date == calendarEvent.End.Date)
         {
-            int p = 0;
-            while (true)
-            {
-                if (calendarEvent.End.Minute >= p && (calendarEvent.End.Minute - p) <= CellDuration) break;
-                p += CellDuration;
-            }
-            int diff = CellDuration - (calendarEvent.End.Minute - p);
+            var celldate = new TimeOnly(dayStartHour).AddMinutes(indexOfLastCell * CellDuration);
+            var diff = CellDuration - (TimeOnly.FromDateTime(calendarEvent.End) - celldate).TotalMinutes;
             double offset = (diff / (double)CellDuration) * bounds.Height;
             height -= (offset + startCorrectionOffset);
         }

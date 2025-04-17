@@ -12,13 +12,16 @@ internal class DayView : ContentControl, ICalendarView
     public Canvas DrawingCanvas = new() { };
     private readonly uint _hourDuration = 60;
     private uint _cellDuration => _hourDuration / 2;
-
-    public DayView(DateTime _dateTime, IEnumerable<CalendarEvent> _dateEvents, uint hourDuration)
+    private uint _dayStartHour;
+    private uint _dayEndHour;
+    public DayView(DateTime _dateTime, IEnumerable<CalendarEvent> _dateEvents, uint hourDuration, uint dayStartHour, uint dayEndHour)
     {
         _hourDuration = hourDuration;
         ViewDate = _dateTime;
         DateEvents = _dateEvents;
-        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration);
+        _dayStartHour = dayStartHour;
+        _dayEndHour = dayEndHour;
+        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration, (int)_dayStartHour);
         try
         {
             Initialize();
@@ -31,10 +34,10 @@ internal class DayView : ContentControl, ICalendarView
 
     private void Initialize()
     {
-        int numberOfRows = (int)Math.Ceiling((double)(24 * 60) / _cellDuration);
+        int numberOfRows = (int)Math.Ceiling((double)(((_dayEndHour - _dayStartHour) + 1) * 60) / _cellDuration);
         string gridstring = string.Concat(Enumerable.Repeat("*,", numberOfRows)).TrimEnd(',');
         Grid MainGrid = new();
-        TimeOnly hour = new(0, 0);
+        TimeOnly hour = new((int)_dayStartHour, 0);
         Grid dategrid = new() { ColumnDefinitions = new("80,*") };
         Grid timegrid = new() { RowDefinitions = new(gridstring) };
         Grid cellgrid = new() { RowDefinitions = new(gridstring) };

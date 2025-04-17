@@ -10,13 +10,17 @@ internal class WeekView : ContentControl, ICalendarView
     private readonly String[] _daysArray = new String[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
     private readonly EventDrawer _eventDrawer;
     private readonly uint _hourDuration = 60;
+    private readonly uint _dayStartHour;
+    private readonly uint _dayEndHour;
     private uint _cellDuration => _hourDuration / 2;
-    public WeekView(DateTime _dateTime, IEnumerable<CalendarEvent> _dateEvents, uint hourDuration)
+    public WeekView(DateTime _dateTime, IEnumerable<CalendarEvent> _dateEvents, uint hourDuration, uint dayStartHour, uint dayEndHour)
     {
         ViewDate = _dateTime;
         DateEvents = _dateEvents;
         _hourDuration = hourDuration;
-        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration);
+        _dayStartHour = dayStartHour;
+        _dayEndHour = dayEndHour;
+        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration , (int)_dayStartHour);
         try
         {
             Initialize();
@@ -61,7 +65,7 @@ internal class WeekView : ContentControl, ICalendarView
         Grid dateGridOuter = new();
         Grid dateGrid = new() { ColumnDefinitions = new("Auto,*,*,*,*,*,*,*") };
         Grid.SetRow(dateGridOuter, 1);
-        int numberOfRows = (int)Math.Ceiling((double)(24 * 60) / _cellDuration);
+        int numberOfRows = (int)Math.Ceiling((double)(((_dayEndHour - _dayStartHour) + 1) * 60) / _cellDuration);
         string gridstring = string.Concat(Enumerable.Repeat("*,", numberOfRows)).TrimEnd(',');
         for (int i = 0; i < 8; i++)
         {
@@ -80,8 +84,9 @@ internal class WeekView : ContentControl, ICalendarView
     private void SetColumnContent(Grid _col, DateTime columnDate)
     {
         int col = Grid.GetColumn(_col);
-        TimeOnly hour = new(0, 0);
-        int numberOfRows = (int)Math.Ceiling((double)(24 * 60) / _cellDuration);
+        TimeOnly hour = new((int)_dayStartHour, 0);
+        uint hoursBetween = (_dayEndHour - _dayStartHour) + 1;
+        int numberOfRows = (int)Math.Ceiling((double)(hoursBetween * 60) / _cellDuration);
         for (int row = 0; row < numberOfRows; row++)
         {
             Thickness thickness = new(1, 0, col == 7 ? 1 : 0, 1);
