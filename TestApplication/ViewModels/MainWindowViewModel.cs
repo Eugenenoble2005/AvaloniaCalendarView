@@ -131,6 +131,12 @@ public partial class MainWindowViewModel : ViewModelBase
             BackgroundBrush = Brushes.Red,
             Start = new(2025,4,14,10,12,0),
             End = new(2025,4,14,12,0,0),
+        },
+        new() {
+            Title = "Mathc",
+            BackgroundBrush = Brushes.Magenta,
+            Start = new(2025,4,18,10,12,0),
+            End = new(2025,6,10,12,6,0),
         }
     };
     public void Today()

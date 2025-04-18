@@ -72,6 +72,7 @@ namespace AvaloniaCalendarView
 
         public void DrawEvents(Grid col, DateTime columnDate)
         {
+            //get events on this day, exclude events than span more than one day
             var eventsOnThisDay = DateEvents.Where(p =>
                 columnDate.Date >= p.Start.Date && columnDate.Date <= p.End.Date
             );
@@ -79,13 +80,13 @@ namespace AvaloniaCalendarView
             int gridColumns = eventsOnThisDay.Count();
             var arrayOfGuids = eventsOnThisDay.Select(p => p.EventID).ToArray();
 
-            var hourStartEndList = eventsOnThisDay.Select(p => new List<TimeOnly> {
-                p.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(p.Start) : new(0,0),
-                p.End.Date == columnDate.Date ? TimeOnly.FromDateTime(p.End) : new(23,59)
-            }).ToList();
 
             foreach (var _event in eventsOnThisDay)
             {
+                var hourStartEndList = eventsOnThisDay.Where(p => p.EventID != _event.EventID).Select(p => new List<TimeOnly> {
+                p.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(p.Start) : new(0,0),
+                p.End.Date == columnDate.Date ? TimeOnly.FromDateTime(p.End) : new(23,59)
+                    }).ToList();
                 TimeOnly hourStart = _event.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.Start) : new(0, 0);
                 TimeOnly hourEnd = _event.End.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.End) : new(23, 59);
 
@@ -104,11 +105,7 @@ namespace AvaloniaCalendarView
                 if (indexOfFirstCell < 0) { indexOfFirstCell = 0; truncateTop = true; }
 
                 var firstCell = (Border)collection[indexOfFirstCell];
-
-                var filteredHourStartEndList = hourStartEndList
-                    .Where(p => !(p[0] == hourStart && p[1] == hourEnd))
-                    .ToList();
-
+                
                 firstCell.PropertyChanged += (s, e) =>
                 {
                     if (e.Property == Border.BoundsProperty)
@@ -122,7 +119,7 @@ namespace AvaloniaCalendarView
                             gridColumns,
                             Array.IndexOf(arrayOfGuids, _event.EventID),
                             columnDate,
-                            filteredHourStartEndList,
+                            hourStartEndList,
                             new List<TimeOnly> { hourStart, hourEnd },
                             truncateTop
                         );
@@ -174,9 +171,8 @@ namespace AvaloniaCalendarView
             }
 
             int intersections = hourStartEndList.Count(p =>
-                hourStartEnd[0] < p[1] && p[0] < hourStartEnd[1]
+                hourStartEnd[0] <= p[1] && p[0] <= hourStartEnd[1]
             );
-
             if (numberOfGridColumns > 1 && intersections > 0)
             {
                 width /= numberOfGridColumns;
