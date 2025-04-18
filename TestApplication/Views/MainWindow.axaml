@@ -57,6 +57,7 @@
                 VerticalAlignment="Stretch"
                 DateEvents="{Binding Events}"
                 ViewDate="{Binding ViewDate}"
+                HourDuration="120"
                 ViewType="{Binding ViewType}" />
         </ScrollViewer>
     </Grid>

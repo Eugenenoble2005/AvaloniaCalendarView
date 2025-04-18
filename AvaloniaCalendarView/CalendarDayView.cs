@@ -9,7 +9,7 @@ internal class DayView : ContentControl, ICalendarView
 
     private readonly EventDrawer _eventDrawer;
 
-    public Canvas DrawingCanvas = new() { };
+    public Canvas DrawingCanvas = new();
     private readonly uint _hourDuration = 60;
     private uint _cellDuration => _hourDuration / 2;
     private uint _dayStartHour;
@@ -45,7 +45,7 @@ internal class DayView : ContentControl, ICalendarView
         Grid.SetColumn(cellgrid, 1);
         for (int i = 0; i < numberOfRows; i++)
         {
-            Thickness thickness = new(1, i == 0 ? 1 : 0, 1, 1);
+            Thickness thickness = new(1, 1, 1, 0);
             Border colBorder = new() { BorderBrush = Brushes.Gray, BorderThickness = thickness, Padding = new(5) };
             colBorder.Classes.Add("avalonia_calendar_view_gridcell");
             Panel p = new() { Height = 20 };

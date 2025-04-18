@@ -137,6 +137,12 @@ public partial class MainWindowViewModel : ViewModelBase
             BackgroundBrush = Brushes.Magenta,
             Start = new(2025,4,18,10,12,0),
             End = new(2025,6,10,12,6,0),
+        },
+        new() {
+            Title = "22 hour event",
+            BackgroundBrush = Brushes.Moccasin,
+            Start = new(2025,4,17,12,12,0),
+            End = new(2025,4,18,9,43,0),
         }
     };
     public void Today()

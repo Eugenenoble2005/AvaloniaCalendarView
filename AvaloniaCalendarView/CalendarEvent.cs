@@ -74,19 +74,17 @@ namespace AvaloniaCalendarView
         {
             //get events on this day, exclude events than span more than one day
             var eventsOnThisDay = DateEvents.Where(p =>
-                columnDate.Date >= p.Start.Date && columnDate.Date <= p.End.Date
+                columnDate.Date >= p.Start.Date && columnDate.Date <= p.End.Date && (p.End - p.Start).TotalHours < 24
             );
 
             int gridColumns = eventsOnThisDay.Count();
             var arrayOfGuids = eventsOnThisDay.Select(p => p.EventID).ToArray();
-
-
             foreach (var _event in eventsOnThisDay)
             {
                 var hourStartEndList = eventsOnThisDay.Where(p => p.EventID != _event.EventID).Select(p => new List<TimeOnly> {
-                p.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(p.Start) : new(0,0),
-                p.End.Date == columnDate.Date ? TimeOnly.FromDateTime(p.End) : new(23,59)
-                    }).ToList();
+                     p.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(p.Start) : new(0,0),
+                     p.End.Date == columnDate.Date ? TimeOnly.FromDateTime(p.End) : new(23,59)
+                }).ToList();
                 TimeOnly hourStart = _event.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.Start) : new(0, 0);
                 TimeOnly hourEnd = _event.End.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.End) : new(23, 59);
 
@@ -105,7 +103,7 @@ namespace AvaloniaCalendarView
                 if (indexOfFirstCell < 0) { indexOfFirstCell = 0; truncateTop = true; }
 
                 var firstCell = (Border)collection[indexOfFirstCell];
-                
+
                 firstCell.PropertyChanged += (s, e) =>
                 {
                     if (e.Property == Border.BoundsProperty)
@@ -149,9 +147,9 @@ namespace AvaloniaCalendarView
 
             double x = (bounds.X + ((column - 1) * bounds.Width)) + 7;
             double y = bounds.Y - 2;
-            double height = bounds.Height + bounds.Height * (indexOfLastCell - indexOfFirstCell);
+            // double height = bounds.Height + bounds.Height * (indexOfLastCell - indexOfFirstCell);
+            double height = bounds.Height * ((indexOfLastCell - indexOfFirstCell) + 1);
             double width = bounds.Width - 10;
-
             double startCorrectionOffset = 0;
             if (columnDate.Date == calendarEvent.Start.Date && !truncateTop)
             {
@@ -161,17 +159,16 @@ namespace AvaloniaCalendarView
                 y += offset;
                 startCorrectionOffset = offset;
             }
-
             if (columnDate.Date == calendarEvent.End.Date)
             {
                 var celldate = new TimeOnly(DayStartHour, 0).AddMinutes(indexOfLastCell * CellDuration);
                 var diff = CellDuration - (TimeOnly.FromDateTime(calendarEvent.End) - celldate).TotalMinutes;
                 double offset = (diff / CellDuration) * bounds.Height;
-                height -= offset + startCorrectionOffset;
+                height -= (offset + startCorrectionOffset);
             }
 
             int intersections = hourStartEndList.Count(p =>
-                hourStartEnd[0] <= p[1] && p[0] <= hourStartEnd[1]
+                hourStartEnd[0] < p[1] && p[0] < hourStartEnd[1]
             );
             if (numberOfGridColumns > 1 && intersections > 0)
             {
@@ -185,7 +182,6 @@ namespace AvaloniaCalendarView
                 Width = width,
                 Background = calendarEvent.DullBackgroundBrush(),
                 CornerRadius = new CornerRadius(truncateTop ? 0 : 10, truncateTop ? 0 : 10, 10, 10),
-                BoxShadow = new BoxShadows(new BoxShadow { Color = Colors.Black, IsInset = true }),
                 Guid = calendarEvent.EventID,
                 BorderThickness = new Thickness(5, truncateTop ? 0 : 5, 5, 5),
                 BorderBrush = calendarEvent.BackgroundBrush,
