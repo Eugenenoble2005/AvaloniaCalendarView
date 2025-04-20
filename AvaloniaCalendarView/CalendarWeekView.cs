@@ -20,7 +20,7 @@ internal class WeekView : ContentControl, ICalendarView
         _hourDuration = hourDuration;
         _dayStartHour = dayStartHour;
         _dayEndHour = dayEndHour;
-        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration , (int)_dayStartHour);
+        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration, (int)_dayStartHour);
         try
         {
             Initialize();
@@ -40,6 +40,8 @@ internal class WeekView : ContentControl, ICalendarView
         int viewday = (int)ViewDate.DayOfWeek;
         var sunday = ViewDate.AddDays(0 - viewday);
         var columnDates = new List<DateTime>();
+        var eventsOverOneDayThisWeek = DateEvents.Where(p => p.End.Date >= sunday && p.Start.Date <= sunday.AddDays(6) && (p.End.Date - p.Start.Date).TotalHours >= 24);
+        int spaceForMultiDayEvents = eventsOverOneDayThisWeek.Count() * 20;
         for (int i = 0; i < 8; i++)
         {
             var date = sunday.AddDays(i - 1);
@@ -63,7 +65,7 @@ internal class WeekView : ContentControl, ICalendarView
         }
         MainGrid.Children.Add(dayNameGrid);
         Grid dateGridOuter = new();
-        Grid dateGrid = new() { ColumnDefinitions = new("Auto,*,*,*,*,*,*,*") };
+        Grid dateGrid = new() { ColumnDefinitions = new("Auto,*,*,*,*,*,*,*")};
         Grid.SetRow(dateGridOuter, 1);
         int numberOfRows = (int)Math.Ceiling((double)(((_dayEndHour - _dayStartHour) + 1) * 60) / _cellDuration);
         string gridstring = string.Concat(Enumerable.Repeat("*,", numberOfRows)).TrimEnd(',');
