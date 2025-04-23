@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia;
-
 namespace AvaloniaCalendarView;
 
 /// <summary>
@@ -51,13 +50,17 @@ public class CalendarEvent
 
 internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int cellDuration, int dayStartHour)
 {
-    public void DrawEvents(Grid col, DateTime columnDate)
+    public void DrawEvents(Grid col, DateTime columnDate, int spaceForMultiDayEvents)
     {
-        //get events on this day, exclude events than span more than one day
+        //get events on this day, exclude events than span more than one day as those will be drawn above the grid seperately
         var eventsOnThisDay = events.Where(p =>
-            columnDate.Date >= p.Start.Date && columnDate.Date <= p.End.Date //&& (p.End - p.Start).TotalHours < 24
+            columnDate.Date >= p.Start.Date && columnDate.Date <= p.End.Date && (p.End - p.Start).TotalHours < 24
         );
-
+        if (Grid.GetColumn(col) == 1)
+        {
+            //draw multiday events
+            DrawMultiDayEvents(col, columnDate, spaceForMultiDayEvents);
+        }
         foreach (var _event in eventsOnThisDay)
         {
             var intersections = eventsOnThisDay.Where(p =>
@@ -65,10 +68,6 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
             );
             int gridColumns = intersections.Count();
             var arrayOfGuids = intersections.Select(p => p.EventID).ToArray();
-            var hourStartEndList = eventsOnThisDay.Where(p => p.EventID != _event.EventID).Select(p => new List<TimeOnly> {
-                     p.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(p.Start) : new(0,0),
-                     p.End.Date == columnDate.Date ? TimeOnly.FromDateTime(p.End) : new(23,59)
-                }).ToList();
             TimeOnly hourStart = _event.Start.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.Start) : new(0, 0);
             TimeOnly hourEnd = _event.End.Date == columnDate.Date ? TimeOnly.FromDateTime(_event.End) : new(23, 59);
 
@@ -81,18 +80,16 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
 
             var collection = col.Children.Where(p => p is Border).ToList();
             if (indexOfFirstCell >= collection.Count) continue;
-
             bool truncateTop = false;
             if (indexOfFirstCell < 0 && indexOfLastCell < 0) continue;
             if (indexOfFirstCell < 0) { indexOfFirstCell = 0; truncateTop = true; }
-
             var firstCell = (Border)collection[indexOfFirstCell];
-
             firstCell.PropertyChanged += (s, e) =>
             {
                 if (e.Property == Border.BoundsProperty)
                 {
-                    var context = new CanvasDrawContext(_event, firstCell.Bounds, Grid.GetColumn(col), indexOfFirstCell, indexOfLastCell, gridColumns, Array.IndexOf(arrayOfGuids, _event.EventID), columnDate, truncateTop);
+                    var context = new CanvasDrawContext(_event, firstCell.Bounds, Grid.GetColumn(col), indexOfFirstCell, indexOfLastCell, gridColumns, Array.IndexOf(arrayOfGuids, _event.EventID), columnDate, truncateTop, spaceForMultiDayEvents);
+                    //split these into two methods
                     DrawEventOnCanvas(
                         context
                     );
@@ -100,6 +97,61 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
             };
         }
     }
+    private void DrawMultiDayEvents(Grid col, DateTime columnDate, int spaceForMultiDayEvents)
+    {
+        //end of week
+        var endOfWeek = columnDate.AddDays(6);
+        //multi day events that fall on this week
+        var multiDayEventsOnThisWeek = events.Where(
+            p => p.Start.Date <= endOfWeek.Date && columnDate.Date <= p.End.Date && (p.End - p.Start).TotalHours >= 24
+        );
+        var arrayOfGuids = multiDayEventsOnThisWeek.Select(p => p.EventID).ToArray();
+        foreach (var _event in multiDayEventsOnThisWeek)
+        {
+            //we must find the intersections        
+            DateTime intersectionStart = _event.Start.Date > columnDate.Date ? _event.Start.Date : columnDate.Date;
+            DateTime intersectionEnd = _event.End.Date < endOfWeek ? _event.End.Date : endOfWeek;
+
+            var distance = (intersectionEnd.Date - intersectionStart.Date).TotalDays + 1;
+            var beginning = (intersectionStart.Date - columnDate.Date).TotalDays;
+
+            var collection = col.Children.Where(p => p is Border).ToList();
+            var firstcell = (Border)collection[0];
+            firstcell.PropertyChanged += (_, e) =>
+            {
+                if (e.Property == Border.BoundsProperty)
+                {
+                    var bounds = firstcell.Bounds;
+                    var height = 30;
+                    var width = bounds.Width * distance;
+
+                    var y = Array.IndexOf(arrayOfGuids, _event.EventID) * height;
+                    var x = beginning * bounds.Width;
+
+                    var border = new EventBorder()
+                    {
+                        Height = height,
+                        Width = width,
+                        Background = DullBackgroundBrush(_event.BackgroundBrush),
+                        Guid = _event.EventID,
+                        CornerRadius = new CornerRadius(5),
+                        BorderThickness = new(1),
+                        BorderBrush = _event.BackgroundBrush
+                    };
+
+                    StackPanel childContent = new() { };
+                    TextBlock eventtext = new() { Text = _event.Title, TextAlignment = TextAlignment.Center};
+                    childContent.Children.Add(eventtext);
+                    border.Child = childContent;
+                    Canvas.SetTop(border, y);
+                    Canvas.SetLeft(border, x);
+
+                    canvas.Children.Add(border);
+                }
+            };
+        }
+    }
+
 
     private void DrawEventOnCanvas(
         CanvasDrawContext context
@@ -110,10 +162,8 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
                 .OfType<EventBorder>()
                 .Where(b => b.Column == context.column && b.Guid == context._event.EventID)
         );
-
         double x = (context.bounds.X + ((context.column - 1) * context.bounds.Width)) + 7;
-        double y = context.bounds.Y - 2;
-        // double height = context.bounds.Height + context.bounds.Height * (context.indexOfLastCell - context.indexOfFirstCell);
+        double y = (context.bounds.Y - 2) + context.spaceForMultiDayEvents;
         double height = context.bounds.Height * ((context.indexOfLastCell - context.indexOfFirstCell) + 1);
         double width = context.bounds.Width - 10;
         double startCorrectionOffset = 0;
@@ -145,7 +195,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
             Background = DullBackgroundBrush(context._event.BackgroundBrush),
             CornerRadius = new CornerRadius(context.truncateTop ? 0 : 10, context.truncateTop ? 0 : 10, 10, 10),
             Guid = context._event.EventID,
-            BorderThickness = new Thickness(5, context.truncateTop ? 0 : 5, 5, 5),
+            BorderThickness = new Thickness(1, context.truncateTop ? 0 : 1, 1, 1),
             BorderBrush = context._event.BackgroundBrush,
             Column = context.column
         };
@@ -165,7 +215,6 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
             FontSize = 13,
             TextWrapping = TextWrapping.Wrap
         };
-
         var contentPanel = new StackPanel
         {
             Orientation = Avalonia.Layout.Orientation.Vertical,
@@ -220,5 +269,6 @@ internal record CanvasDrawContext(
     int numberOfGridColumns,
     int eventGridColumn,
     DateTime columnDate,
-    bool truncateTop
+    bool truncateTop,
+    int spaceForMultiDayEvents
 );

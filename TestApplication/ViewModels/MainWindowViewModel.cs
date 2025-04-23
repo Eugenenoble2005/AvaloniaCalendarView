@@ -155,4 +155,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public void Month() => ViewType = ViewType.Month;
     public void Week() => ViewType = ViewType.Week;
     public void Day() => ViewType = ViewType.Day;
+    public void Add() {
+        
+    }
 }

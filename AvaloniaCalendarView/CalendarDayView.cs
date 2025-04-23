@@ -69,6 +69,6 @@ internal class DayView : ContentControl, ICalendarView
         MainGrid.Children.Add(dategrid);
         cellgrid.Children.Add(DrawingCanvas);
         Content = MainGrid;
-        _eventDrawer.DrawEvents(cellgrid, ViewDate);
+        _eventDrawer.DrawEvents(cellgrid, ViewDate,0);
     }
 }

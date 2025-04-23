@@ -45,6 +45,7 @@
                 <Button Command="{Binding Month}" Content="Month" />
                 <Button Command="{Binding Day}" Content="Day" />
                 <Button Command="{Binding Week}" Content="Week" />
+                <Button Command="{Binding Add}" Content="Add Event" />
             </StackPanel>
         </Grid>
         <ScrollViewer

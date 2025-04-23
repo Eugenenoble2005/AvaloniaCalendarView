@@ -13,6 +13,7 @@ internal class WeekView : ContentControl, ICalendarView
     private readonly uint _dayStartHour;
     private readonly uint _dayEndHour;
     private uint _cellDuration => _hourDuration / 2;
+    private int _numberOfRows;
     public WeekView(DateTime _dateTime, IEnumerable<CalendarEvent> _dateEvents, uint hourDuration, uint dayStartHour, uint dayEndHour)
     {
         ViewDate = _dateTime;
@@ -38,10 +39,11 @@ internal class WeekView : ContentControl, ICalendarView
         Grid dayNameGrid = new() { ColumnDefinitions = new("Auto,*,*,*,*,*,*,*"), Background = Brushes.Transparent };
         Grid.SetRow(dayNameGrid, 0);
         int viewday = (int)ViewDate.DayOfWeek;
+        //sunday is the first day of the week
         var sunday = ViewDate.AddDays(0 - viewday);
         var columnDates = new List<DateTime>();
-        var eventsOverOneDayThisWeek = DateEvents.Where(p => p.End.Date >= sunday && p.Start.Date <= sunday.AddDays(6) && (p.End.Date - p.Start.Date).TotalHours >= 24);
-        int spaceForMultiDayEvents = eventsOverOneDayThisWeek.Count() * 20;
+        //obtain the day that has the contains the most number of events over a day
+        int maxNumberOfMultiDayEventsInOneDay = 0;
         for (int i = 0; i < 8; i++)
         {
             var date = sunday.AddDays(i - 1);
@@ -55,6 +57,9 @@ internal class WeekView : ContentControl, ICalendarView
                 dayNameGrid.Children.Add(pb);
                 continue;
             }
+            maxNumberOfMultiDayEventsInOneDay = Math.Max(maxNumberOfMultiDayEventsInOneDay,
+                DateEvents.Where(p => date >= p.Start.Date && date <= p.End.Date && (p.End - p.Start).TotalHours >= 24).Count()
+            );
             columnDates.Add(date);
             StackPanel pl = new() { Width = 200, Background = Brushes.Transparent, Orientation = Avalonia.Layout.Orientation.Vertical };
             pl.Children.Add(new TextBlock() { Text = _daysArray[i - 1], TextAlignment = Avalonia.Media.TextAlignment.Center, FontWeight = FontWeight.Bold });
@@ -63,33 +68,34 @@ internal class WeekView : ContentControl, ICalendarView
             Grid.SetColumn(pb, i);
             dayNameGrid.Children.Add(pb);
         }
+        //we have to predetermine this before we draw the events
+        int spaceForMultiDayEvents = 30 * maxNumberOfMultiDayEventsInOneDay;
         MainGrid.Children.Add(dayNameGrid);
         Grid dateGridOuter = new();
-        Grid dateGrid = new() { ColumnDefinitions = new("Auto,*,*,*,*,*,*,*")};
+        Grid dateGrid = new() { ColumnDefinitions = new("Auto,*,*,*,*,*,*,*"), Margin = new(0, spaceForMultiDayEvents, 0, 0) };
         Grid.SetRow(dateGridOuter, 1);
-        int numberOfRows = (int)Math.Ceiling((double)(((_dayEndHour - _dayStartHour) + 1) * 60) / _cellDuration);
-        string gridstring = string.Concat(Enumerable.Repeat("*,", numberOfRows)).TrimEnd(',');
+        _numberOfRows = (int)Math.Ceiling((double)(((_dayEndHour - _dayStartHour) + 1) * 60) / _cellDuration);
+        string gridstring = string.Concat(Enumerable.Repeat("*,", _numberOfRows)).TrimEnd(',');
         for (int i = 0; i < 8; i++)
         {
             Grid pGrid = new() { RowDefinitions = new(gridstring) };
             Grid.SetColumn(pGrid, i);
             SetColumnContent(pGrid, i == 0 ? new() : columnDates[i - 1]);
-            _eventDrawer.DrawEvents(pGrid, i == 0 ? new() : columnDates[i - 1]);
+            //draw events on a daily basis
+            _eventDrawer.DrawEvents(pGrid, i == 0 ? new() : columnDates[i - 1], spaceForMultiDayEvents);
             dateGrid.Children.Add(pGrid);
         }
         dateGridOuter.Children.Add(dateGrid);
         dateGridOuter.Children.Add(DrawingCanvas);
         MainGrid.Children.Add(dateGridOuter);
         Content = MainGrid;
-
     }
     private void SetColumnContent(Grid _col, DateTime columnDate)
     {
         int col = Grid.GetColumn(_col);
         TimeOnly hour = new((int)_dayStartHour, 0);
         uint hoursBetween = (_dayEndHour - _dayStartHour) + 1;
-        int numberOfRows = (int)Math.Ceiling((double)(hoursBetween * 60) / _cellDuration);
-        for (int row = 0; row < numberOfRows; row++)
+        for (int row = 0; row < _numberOfRows; row++)
         {
             Thickness thickness = new(1, 0, col == 7 ? 1 : 0, 1);
             Border colBorder = new() { BorderBrush = Brushes.Gray, BorderThickness = thickness, MinHeight = 30 };
