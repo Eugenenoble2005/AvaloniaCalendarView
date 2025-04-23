@@ -21,7 +21,7 @@ internal class WeekView : ContentControl, ICalendarView
         _hourDuration = hourDuration;
         _dayStartHour = dayStartHour;
         _dayEndHour = dayEndHour;
-        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration, (int)_dayStartHour);
+        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration, (int)_dayStartHour,ViewType.Week);
         try
         {
             Initialize();
@@ -31,7 +31,7 @@ internal class WeekView : ContentControl, ICalendarView
             Console.WriteLine(E);
         }
     }
-    public Canvas DrawingCanvas = new() { Margin = new(80, 0, 0, 0) };
+    public Canvas DrawingCanvas = new() { Margin = new(80, 0, 0, 0),  };
     private void Initialize()
     {
         Grid MainGrid = new() { RowDefinitions = new("Auto,*") };

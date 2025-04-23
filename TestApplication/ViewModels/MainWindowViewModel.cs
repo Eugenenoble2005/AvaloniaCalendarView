@@ -143,6 +143,12 @@ public partial class MainWindowViewModel : ViewModelBase
             BackgroundBrush = Brushes.Moccasin,
             Start = new(2025,4,17,12,12,0),
             End = new(2025,4,18,9,43,0),
+        },
+        new() {
+            Title = "some 2-3",
+            BackgroundBrush = Brushes.PeachPuff,
+            Start = new(2025,5,2,12,12,0),
+            End = new(2025,5,5,9,43,0),
         }
     };
     public void Today()
