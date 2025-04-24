@@ -6,7 +6,7 @@ public class CalendarView : ContentControl
 {
     public static readonly StyledProperty<DateTime> ViewDateProperty = AvaloniaProperty.Register<CalendarView, DateTime>(nameof(ViewDate), DateTime.Now);
     public static readonly StyledProperty<ViewType> ViewTypeProperty = AvaloniaProperty.Register<CalendarView, ViewType>(nameof(ViewType));
-    public static readonly StyledProperty<IEnumerable<CalendarEvent>> DateEventsProperty = AvaloniaProperty.Register<CalendarView, IEnumerable<CalendarEvent>>(nameof(DateEvents));
+    public static readonly StyledProperty<IEnumerable<CalendarEvent>> DateEventsProperty = AvaloniaProperty.Register<CalendarView, IEnumerable<CalendarEvent>>(nameof(DateEvents), new List<CalendarEvent>());
     public static readonly StyledProperty<uint> HourDurationProperty = AvaloniaProperty.Register<CalendarView, uint>(nameof(HourDuration), 60);
     public static readonly StyledProperty<uint> DayStartHourProperty = AvaloniaProperty.Register<CalendarView, uint>(nameof(DayStartHour), 0);
     public static readonly StyledProperty<uint> DayEndHourProperty = AvaloniaProperty.Register<CalendarView, uint>(nameof(DayEndHour), 23);
@@ -15,7 +15,6 @@ public class CalendarView : ContentControl
         get => GetValue(ViewDateProperty);
         set => SetValue(ViewDateProperty, value);
     }
-
     public IEnumerable<CalendarEvent> DateEvents
     {
         get => GetValue(DateEventsProperty);

@@ -21,7 +21,7 @@ internal class WeekView : ContentControl, ICalendarView
         _hourDuration = hourDuration;
         _dayStartHour = dayStartHour;
         _dayEndHour = dayEndHour;
-        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration, (int)_dayStartHour,ViewType.Week);
+        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration, (int)_dayStartHour, ViewType.Week);
         try
         {
             Initialize();
@@ -31,7 +31,7 @@ internal class WeekView : ContentControl, ICalendarView
             Console.WriteLine(E);
         }
     }
-    public Canvas DrawingCanvas = new() { Margin = new(80, 0, 0, 0),  };
+    public Canvas DrawingCanvas = new() { Margin = new(80, 0, 0, 0), };
     private void Initialize()
     {
         Grid MainGrid = new() { RowDefinitions = new("Auto,*") };
@@ -43,7 +43,7 @@ internal class WeekView : ContentControl, ICalendarView
         var sunday = ViewDate.AddDays(0 - viewday);
         var columnDates = new List<DateTime>();
         //obtain the day that has the contains the most number of events over a day
-        int maxNumberOfMultiDayEventsInOneDay = 0;
+        int maxNumberOfMultiDayEventsInOneDay = DateEvents.Where(p => p.End.Date >= sunday.Date && p.Start.Date <= sunday.AddDays(6) && (p.End - p.Start).TotalHours >= 24).Count();
         for (int i = 0; i < 8; i++)
         {
             var date = sunday.AddDays(i - 1);
@@ -57,9 +57,6 @@ internal class WeekView : ContentControl, ICalendarView
                 dayNameGrid.Children.Add(pb);
                 continue;
             }
-            maxNumberOfMultiDayEventsInOneDay = Math.Max(maxNumberOfMultiDayEventsInOneDay,
-                DateEvents.Where(p => date >= p.Start.Date && date <= p.End.Date && (p.End - p.Start).TotalHours >= 24).Count()
-            );
             columnDates.Add(date);
             StackPanel pl = new() { Width = 200, Background = Brushes.Transparent, Orientation = Avalonia.Layout.Orientation.Vertical };
             pl.Children.Add(new TextBlock() { Text = _daysArray[i - 1], TextAlignment = Avalonia.Media.TextAlignment.Center, FontWeight = FontWeight.Bold });

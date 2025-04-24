@@ -10,37 +10,47 @@ public class CalendarEvent
     /// <summary>
     /// The title of the event.
     /// </summary>
-    public required string Title;
+    public required string Title { get; set; }
 
     /// <summary>
     /// The DateTime object representing when the event starts.
     /// </summary>
-    public required DateTime Start;
+    public required DateTime Start { get; set; }
 
     /// <summary>
     /// The DateTime object representing when the event ends.
     /// </summary>
-    public required DateTime End;
+    public required DateTime End { get; set; }
 
     /// <summary>
     /// The Brush that paints the background of the event.
     /// </summary>
-    public IBrush BackgroundBrush = Brushes.Blue;
+    public IBrush BackgroundBrush { get; set; } = Brushes.Blue;
 
     /// <summary>
     /// The Brush that paints the foreground of the event.
     /// </summary>
-    public IBrush? DateForegroundBrush;
+    public IBrush? DateForegroundBrush { get; set; }
 
     /// <summary>
     /// Whether or not this event can be resized on the view.
     /// </summary>
-    public bool Resizable = false;
+    public bool Resizable { get; set; } = false;
 
     /// <summary>
     /// A unique identifier for the event.
     /// </summary>
     public Guid EventID { get; } = Guid.CreateVersion7();
+
+    public override string ToString()
+    {
+        return $@"
+            Title: {Title},
+            Start : {Start.ToString()},
+            End: {Start.ToString()},
+            Id: {EventID},
+        ";
+    }
 }
 
 internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int cellDuration, int dayStartHour, ViewType viewType)
@@ -164,8 +174,9 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
                     var childContent = new StackPanel();
                     var eventText = new TextBlock
                     {
-                        Text = _event.Title,
-                        TextAlignment = TextAlignment.Center
+                        Text = $"{_event.Title} ({_event.Start.ToString()} - {_event.End.ToString()})",
+                        TextAlignment = TextAlignment.Center,
+                        TextTrimming = TextTrimming.CharacterEllipsis
                     };
 
                     childContent.Children.Add(eventText);
@@ -214,7 +225,12 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
             width /= context.numberOfGridColumns;
             x += context.eventGridColumn * width;
         }
-
+        //weird edgecase when start and end are equal. Have to resolve that.
+        if (height < 0)
+        {
+            Console.WriteLine(context._event.ToString());
+            return;
+        }
         var border = new EventBorder
         {
             Height = height,
