@@ -80,7 +80,10 @@ public partial class MainWindowViewModel : ViewModelBase
                 Title = $"Event {i}",
                 Start = start,
                 End = end,
-                BackgroundBrush = new SolidColorBrush(Color.Parse($"#{random.Next(0x1000000):X6}")) //random hex color
+                BackgroundBrush = new SolidColorBrush(Color.Parse($"#{random.Next(0x1000000):X6}")), //random hex color
+                ResizeLeft = true,
+                ResizeRight = true,
+                
             });
         }
         //randomize singleday events
@@ -94,7 +97,9 @@ public partial class MainWindowViewModel : ViewModelBase
                 Title = $"Less Event {i}",
                 Start = startFrom,
                 End = endAt,
-                BackgroundBrush = new SolidColorBrush(Color.Parse($"#{random.Next(0x1000000):X6}")) //random hex color
+                BackgroundBrush = new SolidColorBrush(Color.Parse($"#{random.Next(0x1000000):X6}")), //random hex color
+                ResizeLeft = true,
+                ResizeRight = true,
             });
             startFrom = new(startFrom.Year, startFrom.Month, startFrom.Day);
             startFrom = startFrom.AddDays(1).AddHours(random.Next(23)).AddMinutes(59);
