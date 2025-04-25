@@ -58,9 +58,6 @@
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
                     DateEvents="{Binding Events}"
-                    DayEndHour="14"
-                    HourDuration="60"
-                    DayStartHour="6"
                     ViewDate="{Binding ViewDate}"
                     ViewType="{Binding ViewType}" />
             </ScrollViewer>

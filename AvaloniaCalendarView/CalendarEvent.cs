@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 namespace AvaloniaCalendarView;
 /// <summary>
 /// Represents an event that can be displayed on the calendar view.
@@ -165,6 +167,8 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
                         Height = height,
                         Width = width,
                         Background = DullBackgroundBrush(_event.BackgroundBrush),
+                        HoverBackground = _event.BackgroundBrush,
+                        DullBackground = DullBackgroundBrush(_event.BackgroundBrush),
                         Guid = _event.EventID,
                         CornerRadius = new CornerRadius(5),
                         BorderThickness = new Thickness(1),
@@ -228,13 +232,15 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
         //weird edgecase when start and end are equal. Have to resolve that.
         if (height < 0)
         {
-            Console.WriteLine(context._event.ToString());
+            // Console.WriteLine(context._event.ToString());
             return;
         }
         var border = new EventBorder
         {
             Height = height,
             Width = width,
+            HoverBackground = context._event.BackgroundBrush,
+            DullBackground = DullBackgroundBrush(context._event.BackgroundBrush),
             Background = DullBackgroundBrush(context._event.BackgroundBrush),
             CornerRadius = new CornerRadius(context.truncateTop ? 0 : 10, context.truncateTop ? 0 : 10, 10, 10),
             Guid = context._event.EventID,
@@ -294,8 +300,37 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
 
 internal class EventBorder : Border
 {
-    public int Column;
-    public Guid Guid;
+    public int Column { get; set; }
+    public Guid Guid { get; set; }
+    public IBrush HoverBackground { get; set; } = Brushes.Blue;
+    public IBrush DullBackground { get; set; } = Brushes.Blue;
+    private Canvas? _canvas;
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        _canvas = (Canvas?)this.FindAncestorOfType<Canvas>();
+    }
+    protected override void OnPointerEntered(PointerEventArgs e)
+    {
+        IlluminateALlEventBorders(true);
+        base.OnPointerEntered(e);
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        IlluminateALlEventBorders(false);
+        base.OnPointerExited(e);
+    }
+
+    private void IlluminateALlEventBorders(bool illuminate = true)
+    {
+        if (_canvas is null) return;
+        var borders = _canvas.Children.OfType<EventBorder>().Where(p => p.Guid == Guid).ToList();
+        foreach (EventBorder border in borders)
+        {
+            border.Background = illuminate ? border.HoverBackground : border.DullBackground;
+        }
+    }
 }
 
 internal record CanvasDrawContext(
