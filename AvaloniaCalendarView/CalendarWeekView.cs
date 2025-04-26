@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
-namespace AvaloniaCalendarView.WeekView;
+namespace AvaloniaCalendarView;
 internal class WeekView : ContentControl, ICalendarView
 {
     public DateTime ViewDate { get; }
@@ -21,7 +21,7 @@ internal class WeekView : ContentControl, ICalendarView
         _hourDuration = hourDuration;
         _dayStartHour = dayStartHour;
         _dayEndHour = dayEndHour;
-        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration, (int)_dayStartHour, ViewType.Week);
+        _eventDrawer = new(DateEvents, _canvas, (int)_cellDuration, (int)_dayStartHour, ViewType.Week);
         try
         {
             Initialize();
@@ -31,7 +31,7 @@ internal class WeekView : ContentControl, ICalendarView
             Console.WriteLine(E);
         }
     }
-    public Canvas DrawingCanvas = new() { Margin = new(80, 0, 0, 0), };
+    private DrawingCanvas _canvas = new() { Margin = new(80, 0, 0, 0), };
     private void Initialize()
     {
         Grid MainGrid = new() { RowDefinitions = new("Auto,*") };
@@ -67,6 +67,7 @@ internal class WeekView : ContentControl, ICalendarView
         }
         //we have to predetermine this before we draw the events
         int spaceForMultiDayEvents = 30 * maxNumberOfMultiDayEventsInOneDay;
+        _canvas.SpaceForMultiDayEvents = spaceForMultiDayEvents;
         MainGrid.Children.Add(dayNameGrid);
         Grid dateGridOuter = new();
         Grid dateGrid = new() { ColumnDefinitions = new("Auto,*,*,*,*,*,*,*"), Margin = new(0, spaceForMultiDayEvents, 0, 0) };
@@ -79,11 +80,11 @@ internal class WeekView : ContentControl, ICalendarView
             Grid.SetColumn(pGrid, i);
             SetColumnContent(pGrid, i == 0 ? new() : columnDates[i - 1]);
             //draw events on a daily basis
-            _eventDrawer.DrawEvents(pGrid, i == 0 ? new() : columnDates[i - 1], spaceForMultiDayEvents);
+            _eventDrawer.DrawEvents(pGrid, i == 0 ? new() : columnDates[i - 1]);
             dateGrid.Children.Add(pGrid);
         }
         dateGridOuter.Children.Add(dateGrid);
-        dateGridOuter.Children.Add(DrawingCanvas);
+        dateGridOuter.Children.Add(_canvas);
         MainGrid.Children.Add(dateGridOuter);
         Content = MainGrid;
     }
@@ -119,4 +120,8 @@ internal class WeekView : ContentControl, ICalendarView
         }
     }
 }
-
+internal class DrawingCanvas : Canvas
+{
+    //this is just used for resizing and moving
+    public double SpaceForMultiDayEvents { get; set; }
+}

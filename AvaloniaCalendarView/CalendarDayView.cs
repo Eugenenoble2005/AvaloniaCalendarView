@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
-namespace AvaloniaCalendarView.DayView;
+namespace AvaloniaCalendarView;
 internal class DayView : ContentControl, ICalendarView
 {
     public DateTime ViewDate { get; }
@@ -9,7 +9,7 @@ internal class DayView : ContentControl, ICalendarView
 
     private readonly EventDrawer _eventDrawer;
 
-    public Canvas DrawingCanvas = new() {  };
+    public DrawingCanvas _canvas = new() { };
     private readonly uint _hourDuration = 60;
     private uint _cellDuration => _hourDuration / 2;
     private uint _dayStartHour;
@@ -21,7 +21,7 @@ internal class DayView : ContentControl, ICalendarView
         DateEvents = _dateEvents;
         _dayStartHour = dayStartHour;
         _dayEndHour = dayEndHour;
-        _eventDrawer = new(DateEvents, DrawingCanvas, (int)_cellDuration, (int)_dayStartHour,ViewType.Day);
+        _eventDrawer = new(DateEvents, _canvas, (int)_cellDuration, (int)_dayStartHour, ViewType.Day);
         try
         {
             Initialize();
@@ -38,6 +38,7 @@ internal class DayView : ContentControl, ICalendarView
         string gridstring = string.Concat(Enumerable.Repeat("*,", numberOfRows)).TrimEnd(',');
         Grid MainGrid = new();
         int spaceForMultiDayEvents = DateEvents.Where(p => ViewDate.Date >= p.Start.Date && ViewDate.Date <= p.End.Date && (p.End - p.Start).TotalHours >= 24).Count() * 30;
+        _canvas.SpaceForMultiDayEvents = spaceForMultiDayEvents;
         TimeOnly hour = new((int)_dayStartHour, 0);
         Grid dategrid = new() { ColumnDefinitions = new("80,*") };
         Grid timegrid = new() { RowDefinitions = new(gridstring), Margin = new(0, spaceForMultiDayEvents, 0, 0) };
@@ -71,8 +72,8 @@ internal class DayView : ContentControl, ICalendarView
         cellgridouter.Children.Add(cellgrid);
         dategrid.Children.Add(cellgridouter);
         MainGrid.Children.Add(dategrid);
-        cellgridouter.Children.Add(DrawingCanvas);
+        cellgridouter.Children.Add(_canvas);
         Content = MainGrid;
-        _eventDrawer.DrawEvents(cellgrid, ViewDate, spaceForMultiDayEvents);
+        _eventDrawer.DrawEvents(cellgrid, ViewDate);
     }
 }

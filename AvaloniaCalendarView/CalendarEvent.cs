@@ -44,31 +44,18 @@ public class CalendarEvent
     /// </summary>
     public bool ResizeRight { get; set; } = false;
 
-    /// <summary>
-    /// A unique identifier for the event.
-    /// </summary>
-    public Guid EventID { get; } = Guid.CreateVersion7();
-
-    public override string ToString()
-    {
-        return $@"
-            Title: {Title},
-            Start : {Start.ToString()},
-            End: {Start.ToString()},
-            Id: {EventID},
-        ";
-    }
 }
 
-internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int cellDuration, int dayStartHour, ViewType viewType)
+internal class EventDrawer(IEnumerable<CalendarEvent> events, DrawingCanvas canvas, int cellDuration, int dayStartHour, ViewType viewType)
 {
-    public void DrawEvents(Grid col, DateTime columnDate, int spaceForMultiDayEvents)
+    public void DrawEvents(Grid col, DateTime columnDate)
     {
         var eventsOnThisDay = events.Where(p =>
             columnDate.Date >= p.Start.Date &&
             columnDate.Date <= p.End.Date &&
             (p.End - p.Start).TotalHours < 24);
 
+        int spaceForMultiDayEvents = (int)canvas.SpaceForMultiDayEvents;
         if (Grid.GetColumn(col) == 1)
         {
             DrawMultiDayEvents(col, columnDate, spaceForMultiDayEvents);
@@ -77,11 +64,9 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
         foreach (var _event in eventsOnThisDay)
         {
             var intersections = eventsOnThisDay.Where(p =>
-                _event.Start < p.End && p.Start < _event.End);
+                _event.Start < p.End && p.Start < _event.End).ToArray();
 
             int gridColumns = intersections.Count();
-            var arrayOfGuids = intersections.Select(p => p.EventID).ToArray();
-
             TimeOnly hourStart = _event.Start.Date == columnDate.Date
                 ? TimeOnly.FromDateTime(_event.Start)
                 : new(0, 0);
@@ -120,7 +105,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
                         indexOfFirstCell,
                         indexOfLastCell,
                         gridColumns,
-                        Array.IndexOf(arrayOfGuids, _event.EventID),
+                        Array.IndexOf(intersections, _event),
                         columnDate,
                         truncateTop,
                         spaceForMultiDayEvents
@@ -138,9 +123,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
         var multiDayEventsOnThisWeek = events.Where(p =>
             p.Start.Date <= endOfWeek.Date &&
             columnDate.Date <= p.End.Date &&
-            (p.End - p.Start).TotalHours >= 24);
-
-        var arrayOfGuids = multiDayEventsOnThisWeek.Select(p => p.EventID).ToArray();
+            (p.End - p.Start).TotalHours >= 24).ToArray();
 
         foreach (var _event in multiDayEventsOnThisWeek)
         {
@@ -159,22 +142,22 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
                 {
                     canvas.Children.RemoveAll(canvas.Children
                         .OfType<EventBorder>()
-                        .Where(b => b.Guid == _event.EventID));
+                        .Where(b => b.Event == _event));
 
                     var bounds = firstCell.Bounds;
                     var height = 30;
                     var width = bounds.Width * distance;
-                    var y = Array.IndexOf(arrayOfGuids, _event.EventID) * height;
+                    var y = Array.IndexOf(multiDayEventsOnThisWeek, _event) * height;
                     var x = beginning * bounds.Width;
 
                     var border = new EventBorder
                     {
                         Height = height,
                         Width = width,
+                        Event = _event,
                         Background = DullBackgroundBrush(_event.BackgroundBrush),
                         HoverBackground = _event.BackgroundBrush,
                         DullBackground = DullBackgroundBrush(_event.BackgroundBrush),
-                        Guid = _event.EventID,
                         ResizeLeft = _event.ResizeLeft && viewType != ViewType.Day && canResizeLeft, //cant resize multiday events in day view
                         ResizeRight = _event.ResizeRight && viewType != ViewType.Day,
                         CornerRadius = new CornerRadius(
@@ -212,7 +195,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
     {
         canvas.Children.RemoveAll(canvas.Children
             .OfType<EventBorder>()
-            .Where(b => b.Column == context.column && b.Guid == context._event.EventID));
+            .Where(b => b.Column == context.column && b.Event == context._event));
 
         double x = context.bounds.X + ((context.column - 1) * context.bounds.Width) + 7;
         double y = context.bounds.Y - 2 + context.spaceForMultiDayEvents;
@@ -256,17 +239,22 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
         {
             Height = height,
             Width = width,
+            Event = context._event,
             HoverBackground = context._event.BackgroundBrush,
             DullBackground = DullBackgroundBrush(context._event.BackgroundBrush),
             Background = DullBackgroundBrush(context._event.BackgroundBrush),
             ResizeDown = canResizeDown && context._event.ResizeRight,
             ResizeUp = canResizeUp && context._event.ResizeLeft,
             CornerRadius = new CornerRadius(context.truncateTop ? 0 : 10, context.truncateTop ? 0 : 10, 10, 10),
-            Guid = context._event.EventID,
             BorderThickness = new Thickness(1, context.truncateTop ? 0 : 1, 1, 1),
             BorderBrush = context._event.BackgroundBrush,
             Type = EventBorderType.SingleDay,
-            Column = context.column
+            CellHeight = context.bounds.Height,
+            CellWidth = context.bounds.Width,
+            Column = context.column,
+            ColumnDate = context.columnDate,
+            CellDuration = cellDuration,
+            DayStartHour = dayStartHour
         };
 
         var titleText = new TextBlock
@@ -321,11 +309,11 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, Canvas canvas, int
 internal class EventBorder : Border
 {
     public int Column { get; set; }
-    public Guid Guid { get; set; }
     public IBrush HoverBackground { get; set; } = Brushes.Blue;
     public IBrush DullBackground { get; set; } = Brushes.Blue;
     public EventBorderType Type { get; set; }
-    private Canvas? _canvas; //handle to the parent canvas
+    public required CalendarEvent Event { get; set; }
+    private DrawingCanvas? _canvas; //handle to the parent canvas
 
     //movement properties
     public bool ResizeUp { get; set; } = false;
@@ -333,12 +321,19 @@ internal class EventBorder : Border
     public bool ResizeRight { get; set; } = false;
     public bool ResizeLeft { get; set; } = false;
 
+    //for determining position
+    public double CellHeight { get; set; }
+    public double CellWidth { get; set; }
+    public DateTime ColumnDate { get; set; }
+    public int CellDuration { get; set; }
+    public int DayStartHour { get; set; }
+
     private bool _resizeMode = false;
     private ResizeContext? _resizeContext = null;
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        _canvas = (Canvas?)this.FindAncestorOfType<Canvas>();
+        _canvas = (DrawingCanvas?)this.FindAncestorOfType<Canvas>();
     }
 
     protected override void OnPointerEntered(PointerEventArgs e)
@@ -354,11 +349,40 @@ internal class EventBorder : Border
         }
         if (_resizeContext is not null && _resizeMode)
         {
-            Console.WriteLine(e.GetPosition(_canvas).Y);
-            Console.WriteLine();
+            HandleResize(e);
         }
     }
 
+    private void HandleResize(PointerEventArgs e)
+    {
+        if (_resizeContext == null) return;
+        (double x, double y) coords = (e.GetPosition(_canvas).X, e.GetPosition(_canvas).Y);
+        if (Type == EventBorderType.SingleDay)
+        {
+            //can only be resized up and down
+            string target = _resizeContext.Edge == BorderEdge.Top ? "start" : "end";
+            DateTime? destination = CoordsToDateTime(coords);
+            if (destination is null) return;
+
+        }
+    }
+
+    //convert coordinates on the canvas to datetime by getting the datetime of the cell at that coordinate
+    private DateTime? CoordsToDateTime((double x, double y) coord)
+    {
+        if (_canvas is null) return null;
+        //bound guards
+        if (coord.y < _canvas.SpaceForMultiDayEvents || coord.y > _canvas.Bounds.Height - _canvas.SpaceForMultiDayEvents) return null;
+        if (coord.x < 0 || coord.x > _canvas.Bounds.Width) return null;
+        double y = coord.y - _canvas.SpaceForMultiDayEvents;
+        var height = _canvas.Bounds.Height;
+        var vertical_distance = (int)(y / CellHeight);
+        var horizontal_distance = (int)(coord.x / CellWidth);
+        DateTime horizontal_day = ColumnDate.AddDays(horizontal_distance - Column + 1).Date;
+        TimeOnly vertical_time = new TimeOnly(DayStartHour, 0).AddMinutes(vertical_distance * CellDuration);
+        DateTime day = new(horizontal_day.Year, horizontal_day.Month, horizontal_day.Day, vertical_time.Hour, vertical_time.Minute, 0);
+        return day;
+    }
     private void SetResizeContext(PointerEventArgs e)
     {
 
@@ -449,13 +473,10 @@ internal class EventBorder : Border
         return null;
     }
 
-
-
-
     private void IlluminateAllEventBorders(bool illuminate = true)
     {
         if (_canvas is null) return;
-        var borders = _canvas.Children.OfType<EventBorder>().Where(p => p.Guid == Guid).ToList();
+        var borders = _canvas.Children.OfType<EventBorder>().Where(p => p.Event == Event).ToList();
         foreach (EventBorder border in borders)
         {
             border.Background = illuminate ? border.HoverBackground : border.DullBackground;

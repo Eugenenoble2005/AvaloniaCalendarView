@@ -83,7 +83,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 BackgroundBrush = new SolidColorBrush(Color.Parse($"#{random.Next(0x1000000):X6}")), //random hex color
                 ResizeLeft = true,
                 ResizeRight = true,
-                
+
             });
         }
         //randomize singleday events

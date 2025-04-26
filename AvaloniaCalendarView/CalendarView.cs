@@ -96,12 +96,12 @@ public class CalendarView : ContentControl
         switch (ViewType)
         {
             case ViewType.Month:
-                return new MonthView.MonthView(ViewDate, DateEvents);
+                return new MonthView(ViewDate, DateEvents);
             case ViewType.Week:
-                return new WeekView.WeekView(ViewDate, DateEvents, HourDuration, DayStartHour, DayEndHour);
+                return new WeekView(ViewDate, DateEvents, HourDuration, DayStartHour, DayEndHour);
             case ViewType.Day:
-                return new DayView.DayView(ViewDate, DateEvents, HourDuration, DayStartHour, DayEndHour);
-            default: return new MonthView.MonthView(ViewDate, DateEvents);
+                return new DayView(ViewDate, DateEvents, HourDuration, DayStartHour, DayEndHour);
+            default: return new MonthView(ViewDate, DateEvents);
         }
     }
 }

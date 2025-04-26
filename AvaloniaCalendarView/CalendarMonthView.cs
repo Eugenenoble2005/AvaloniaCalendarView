@@ -1,10 +1,9 @@
-namespace AvaloniaCalendarView.MonthView;
+namespace AvaloniaCalendarView;
 
 using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
-using AvaloniaCalendarView;
 internal class MonthView : ContentControl, ICalendarView
 {
     private readonly String[] _daysArray = new String[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
