@@ -167,6 +167,10 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, DrawingCanvas canv
                             intersectionStart.Date == _event.Start.Date ? 5 : 0
                         ),
                         Type = EventBorderType.Multiday,
+                        CellHeight = bounds.Height,
+                        CellWidth = bounds.Width,
+                        ColumnDate = columnDate,
+                        CellDuration = cellDuration,
                         BorderThickness = new Thickness(1),
                         BorderBrush = _event.BackgroundBrush,
                     };
@@ -314,6 +318,7 @@ internal class EventBorder : Border
     public EventBorderType Type { get; set; }
     public required CalendarEvent Event { get; set; }
     private DrawingCanvas? _canvas; //handle to the parent canvas
+    private CalendarView? _calendarView; //handle to parent calendarview
 
     //movement properties
     public bool ResizeUp { get; set; } = false;
@@ -334,6 +339,7 @@ internal class EventBorder : Border
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _canvas = (DrawingCanvas?)this.FindAncestorOfType<Canvas>();
+        _calendarView = (CalendarView?)this.FindAncestorOfType<CalendarView>();
     }
 
     protected override void OnPointerEntered(PointerEventArgs e)
@@ -360,19 +366,85 @@ internal class EventBorder : Border
         if (Type == EventBorderType.SingleDay)
         {
             //can only be resized up and down
-            string target = _resizeContext.Edge == BorderEdge.Top ? "start" : "end";
             DateTime? destination = CoordsToDateTime(coords);
             if (destination is null) return;
-
+            if (_resizeContext.Edge == BorderEdge.Top)
+            {
+                ResizeStart(destination.Value);
+            }
+            else
+            {
+                ResizeEnd(destination.Value);
+            }
+        }
+        else
+        {
+            //can only be resized left and right
+            DateTime? destination = CoordsToDateTime(coords);
+            if (destination is null) return;
+            if (_resizeContext.Edge == BorderEdge.Left)
+            {
+                ResizeStart(destination.Value);
+            }
+            else
+            {
+                ResizeEnd(destination.Value);
+            }
         }
     }
 
+    private void ResizeStart(DateTime destination)
+    {
+        if (_calendarView is null) return;
+        if (Type == EventBorderType.SingleDay)
+        {
+            if (destination > Event.End || (Event.End - destination).TotalMinutes < 30) return;
+            var diff = destination - Event.Start;
+            _calendarView.DateEvents.FirstOrDefault(p => p == Event)!.Start = _calendarView.DateEvents.FirstOrDefault(p => p == Event)!.Start.AddHours(diff.TotalHours);
+        }
+        else
+        {
+            if (destination > Event.End) return;
+            destination = destination.AddDays(-1); //idk
+            var diff = (destination - Event.Start).TotalDays;
+            _calendarView.DateEvents.FirstOrDefault(p => p == Event)!.Start = _calendarView.DateEvents.FirstOrDefault(p => p == Event)!.Start.AddDays(diff);
+        }
+    }
+
+    private void ResizeEnd(DateTime destination)
+    {
+        if (_calendarView is null) return;
+        if (Type == EventBorderType.SingleDay)
+        {
+            if (destination < Event.Start || (destination - Event.Start).TotalMinutes < 30 || _calendarView is null) return;
+            var diff = destination - Event.End;
+            _calendarView.DateEvents.FirstOrDefault(p => p == Event)!.End = _calendarView.DateEvents.FirstOrDefault(p => p == Event)!.End.AddHours(diff.TotalHours);
+        }
+        else
+        {
+            if (destination < Event.Start) return;
+            destination = destination.AddDays(-1);
+            var diff = (destination - Event.End).TotalDays;
+            _calendarView.DateEvents.FirstOrDefault(p => p == Event)!.End = _calendarView.DateEvents.FirstOrDefault(p => p == Event)!.End.AddDays(diff);
+            var _event = _calendarView.DateEvents.FirstOrDefault(p => p == Event);
+            if ((_event!.End - _event.Start).TotalHours < 1)
+            {
+                _calendarView.DateEvents.FirstOrDefault(p => p == Event)!.Start = new(_event.Start.Year, _event.Start.Month, _event.Start.Day, 0, 0, 0);
+                _calendarView.DateEvents.FirstOrDefault(p => p == Event)!.End = new(_event.Start.Year, _event.Start.Month, _event.Start.Day, 12, 0, 0);
+            }
+        }
+
+    }
     //convert coordinates on the canvas to datetime by getting the datetime of the cell at that coordinate
     private DateTime? CoordsToDateTime((double x, double y) coord)
     {
         if (_canvas is null) return null;
         //bound guards
-        if (coord.y < _canvas.SpaceForMultiDayEvents || coord.y > _canvas.Bounds.Height - _canvas.SpaceForMultiDayEvents) return null;
+        if (
+            coord.y < (Type == EventBorderType.SingleDay ? _canvas.SpaceForMultiDayEvents : 0) ||
+            coord.y > _canvas.Bounds.Height - (Type == EventBorderType.SingleDay ? _canvas.SpaceForMultiDayEvents : 0)
+        ) return null;
+
         if (coord.x < 0 || coord.x > _canvas.Bounds.Width) return null;
         double y = coord.y - _canvas.SpaceForMultiDayEvents;
         var height = _canvas.Bounds.Height;
@@ -385,7 +457,6 @@ internal class EventBorder : Border
     }
     private void SetResizeContext(PointerEventArgs e)
     {
-
         var edge = DetermineEdge(e);
         switch (edge)
         {
@@ -444,6 +515,7 @@ internal class EventBorder : Border
     {
         _resizeMode = false;
         _resizeContext = null;
+        _calendarView!.ForceRender();
     }
     private BorderEdge? DetermineEdge(PointerEventArgs e)
     {

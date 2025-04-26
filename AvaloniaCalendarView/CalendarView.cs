@@ -104,6 +104,11 @@ public class CalendarView : ContentControl
             default: return new MonthView(ViewDate, DateEvents);
         }
     }
+
+    public void ForceRender()
+    {
+        Content = GetView();
+    }
 }
 
 internal interface ICalendarView
