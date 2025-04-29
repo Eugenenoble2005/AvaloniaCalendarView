@@ -83,7 +83,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 BackgroundBrush = new SolidColorBrush(Color.Parse($"#{random.Next(0x1000000):X6}")), //random hex color
                 ResizeLeft = true,
                 ResizeRight = true,
-
+                Mobile = true,
             });
         }
         //randomize singleday events
@@ -100,9 +100,10 @@ public partial class MainWindowViewModel : ViewModelBase
                 BackgroundBrush = new SolidColorBrush(Color.Parse($"#{random.Next(0x1000000):X6}")), //random hex color
                 ResizeLeft = true,
                 ResizeRight = true,
+                Mobile = true,
             });
             startFrom = new(startFrom.Year, startFrom.Month, startFrom.Day);
-            startFrom = startFrom.AddDays(1).AddHours(random.Next(23)).AddMinutes(59);
+            startFrom = startFrom.AddDays(1).AddHours(random.Next(23)).AddMinutes(random.Next(59));
         }
         Events = p;
     }

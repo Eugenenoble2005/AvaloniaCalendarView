@@ -32,17 +32,22 @@ public class CalendarEvent
     /// <summary>
     /// The Brush that paints the foreground of the event.
     /// </summary>
-    public IBrush? DateForegroundBrush { get; set; } = Brushes.White;
+    public IBrush DateForegroundBrush { get; set; } = Brushes.White;
 
     /// <summary>
-    /// Whether or not this event can be resized to the left, that is the start can be pushed back
+    /// Whether or not this event can be resized to the left, that is the start can be pushed back.
     /// </summary>
     public bool ResizeLeft { get; set; } = false;
 
     /// <summary>
-    /// Whether or not this event can be resized to the right, that is the end can be pushed forward
+    /// Whether or not this event can be resized to the right, that is the end can be pushed forward.
     /// </summary>
     public bool ResizeRight { get; set; } = false;
+
+    ///<summary>
+    /// Whether or not this event can be moved.
+    /// </summary>
+    public bool Mobile { get; set; } = false;
 
 }
 
@@ -160,6 +165,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, DrawingCanvas canv
                         DullBackground = DullBackgroundBrush(_event.BackgroundBrush),
                         ResizeLeft = _event.ResizeLeft && viewType != ViewType.Day && canResizeLeft, //cant resize multiday events in day view
                         ResizeRight = _event.ResizeRight && viewType != ViewType.Day,
+                        CanMove = _event.Mobile,
                         CornerRadius = new CornerRadius(
                             intersectionStart.Date == _event.Start.Date ? 5 : 0,
                             5,
@@ -249,6 +255,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, DrawingCanvas canv
             Background = DullBackgroundBrush(context._event.BackgroundBrush),
             ResizeDown = canResizeDown && context._event.ResizeRight,
             ResizeUp = canResizeUp && context._event.ResizeLeft,
+            CanMove = context._event.Mobile,
             CornerRadius = new CornerRadius(context.truncateTop ? 0 : 10, context.truncateTop ? 0 : 10, 10, 10),
             BorderThickness = new Thickness(1, context.truncateTop ? 0 : 1, 1, 1),
             BorderBrush = context._event.BackgroundBrush,
@@ -325,6 +332,7 @@ internal class EventBorder : Border
     public bool ResizeDown { get; set; } = false;
     public bool ResizeRight { get; set; } = false;
     public bool ResizeLeft { get; set; } = false;
+    public bool CanMove { get; set; } = false;
 
     //for determining position
     public double CellHeight { get; set; }
@@ -334,7 +342,9 @@ internal class EventBorder : Border
     public int DayStartHour { get; set; }
 
     private bool _resizeMode = false;
+    private bool _moveMode = false;
     private ResizeContext? _resizeContext = null;
+    private MoveContext? _moveContext = null;
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
@@ -349,7 +359,7 @@ internal class EventBorder : Border
     }
     protected override void OnPointerMoved(PointerEventArgs e)
     {
-        if (!_resizeMode)
+        if (!_resizeMode && !_moveMode)
         {
             SetResizeContext(e);
         }
@@ -357,6 +367,12 @@ internal class EventBorder : Border
         {
             HandleResize(e);
         }
+
+        if (_moveContext is not null && _moveMode)
+        {
+            HandleMove(e);
+        }
+
     }
 
     private void HandleResize(PointerEventArgs e)
@@ -393,6 +409,15 @@ internal class EventBorder : Border
         }
     }
 
+    private void HandleMove(PointerEventArgs e)
+    {
+        (double x, double y) coords = (e.GetPosition(_canvas).X, e.GetPosition(_canvas).Y);
+        var moveTo = CoordsToDateTime(coords);
+        if (moveTo is null) return;
+        var diff = (moveTo.Value - _moveContext!.moveFrom).TotalHours;
+        _calendarView!.DateEvents.FirstOrDefault(p => p == Event)!.Start = _moveContext.originalStart.AddHours(diff);
+        _calendarView!.DateEvents.FirstOrDefault(p => p == Event)!.End = _moveContext.originalEnd.AddHours(diff);
+    }
     private void ResizeStart(DateTime destination)
     {
         if (_calendarView is null) return;
@@ -442,9 +467,8 @@ internal class EventBorder : Border
         //bound guards
         if (
             coord.y < (Type == EventBorderType.SingleDay ? _canvas.SpaceForMultiDayEvents : 0) ||
-            coord.y > _canvas.Bounds.Height - (Type == EventBorderType.SingleDay ? _canvas.SpaceForMultiDayEvents : 0)
+            coord.y > _canvas.Bounds.Height
         ) return null;
-
         if (coord.x < 0 || coord.x > _canvas.Bounds.Width) return null;
         double y = coord.y - _canvas.SpaceForMultiDayEvents;
         var height = _canvas.Bounds.Height;
@@ -465,6 +489,7 @@ internal class EventBorder : Border
                 {
                     Cursor = Cursor.Parse("SizeNorthSouth");
                     _resizeContext = new(BorderEdge.Bottom);
+                    _moveContext = null;
                 }
                 break;
             case BorderEdge.Top:
@@ -472,6 +497,7 @@ internal class EventBorder : Border
                 {
                     Cursor = Cursor.Parse("SizeNorthSouth");
                     _resizeContext = new(BorderEdge.Top);
+                    _moveContext = null;
                 }
                 break;
             case BorderEdge.Left:
@@ -479,6 +505,7 @@ internal class EventBorder : Border
                 {
                     Cursor = Cursor.Parse("SizeWestEast");
                     _resizeContext = new(BorderEdge.Left);
+                    _moveContext = null;
                 }
                 break;
             case BorderEdge.Right:
@@ -486,12 +513,22 @@ internal class EventBorder : Border
                 {
                     Cursor = Cursor.Parse("SizeWestEast");
                     _resizeContext = new(BorderEdge.Right);
+                    _moveContext = null;
                 }
                 break;
             default:
-                //reset cursor
-                Cursor = Cursor.Default;
                 _resizeContext = null;
+                if (CanMove)
+                {
+                    Cursor = Cursor.Parse("DragMove");
+                    DateTime? from = CoordsToDateTime((e.GetPosition(_canvas).X, e.GetPosition(_canvas).Y));
+                    if (from is null) return;
+                    _moveContext = new(from.Value, Event.Start, Event.End);
+                }
+                else
+                {
+                    Cursor = Cursor.Default;
+                }
                 break;
         }
 
@@ -509,12 +546,19 @@ internal class EventBorder : Border
             //go into resize mode
             _resizeMode = true;
         }
+        if (_moveContext is not null)
+        {
+            //go into move mode
+            _moveMode = true;
+        }
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         _resizeMode = false;
+        _moveMode = false;
         _resizeContext = null;
+        _moveContext = null;
         _calendarView!.ForceRender();
     }
     private BorderEdge? DetermineEdge(PointerEventArgs e)
@@ -542,7 +586,7 @@ internal class EventBorder : Border
         {
             return BorderEdge.Right;
         }
-        return null;
+        return BorderEdge.Center;
     }
 
     private void IlluminateAllEventBorders(bool illuminate = true)
@@ -574,7 +618,8 @@ internal enum BorderEdge
     Top,
     Right,
     Bottom,
-    Left
+    Left,
+    Center
 }
 
 internal enum EventBorderType
@@ -584,4 +629,9 @@ internal enum EventBorderType
 }
 internal record ResizeContext(
     BorderEdge Edge
+);
+internal record MoveContext(
+    DateTime moveFrom,
+    DateTime originalStart,
+    DateTime originalEnd
 );
