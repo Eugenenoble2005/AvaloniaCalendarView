@@ -193,8 +193,9 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, DrawingCanvas canv
                     border.Child = childContent;
 
                     Canvas.SetTop(border, y);
+                    border.OriginalTop = y;
                     Canvas.SetLeft(border, x);
-
+                    border.OriginalLeft = x;
                     canvas.Children.Add(border);
                 }
             };
@@ -296,7 +297,9 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, DrawingCanvas canv
         border.Child = contentPanel;
 
         Canvas.SetTop(border, y);
+        border.OriginalTop = y;
         Canvas.SetLeft(border, x);
+        border.OriginalLeft = x;
         canvas.Children.Add(border);
     }
 
@@ -345,6 +348,9 @@ internal class EventBorder : Border
     private bool _moveMode = false;
     private ResizeContext? _resizeContext = null;
     private MoveContext? _moveContext = null;
+
+    public double OriginalLeft { get; set; } = 0;
+    public double OriginalTop { get; set; } = 0;
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
@@ -417,6 +423,13 @@ internal class EventBorder : Border
         var diff = (moveTo.Value - _moveContext!.moveFrom).TotalHours;
         _calendarView!.DateEvents.FirstOrDefault(p => p == Event)!.Start = _moveContext.originalStart.AddHours(diff);
         _calendarView!.DateEvents.FirstOrDefault(p => p == Event)!.End = _moveContext.originalEnd.AddHours(diff);
+
+        //simulate move
+        foreach (var border in _canvas!.Children.OfType<EventBorder>().Where(p => p.Event == Event))
+        {
+            Canvas.SetLeft(border, border.OriginalLeft - (_moveContext.moveFromCoords.x - coords.x));
+            Canvas.SetTop(border, border.OriginalTop - (_moveContext.moveFromCoords.y - coords.y));
+        }
     }
     private void ResizeStart(DateTime destination)
     {
@@ -523,7 +536,7 @@ internal class EventBorder : Border
                     Cursor = Cursor.Parse("DragMove");
                     DateTime? from = CoordsToDateTime((e.GetPosition(_canvas).X, e.GetPosition(_canvas).Y));
                     if (from is null) return;
-                    _moveContext = new(from.Value, Event.Start, Event.End);
+                    _moveContext = new(from.Value, (e.GetPosition(_canvas).X, e.GetPosition(_canvas).Y), Event.Start, Event.End);
                 }
                 else
                 {
@@ -632,6 +645,7 @@ internal record ResizeContext(
 );
 internal record MoveContext(
     DateTime moveFrom,
+    (double x, double y) moveFromCoords,
     DateTime originalStart,
     DateTime originalEnd
 );
