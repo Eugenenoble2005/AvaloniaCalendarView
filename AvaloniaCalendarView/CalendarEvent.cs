@@ -501,7 +501,7 @@ internal class EventBorder : Border
                 if (ResizeDown)
                 {
                     Cursor = Cursor.Parse("SizeNorthSouth");
-                    _resizeContext = new(BorderEdge.Bottom);
+                    _resizeContext = new(BorderEdge.Bottom, (Event.Start, Event.End));
                     _moveContext = null;
                 }
                 break;
@@ -509,7 +509,7 @@ internal class EventBorder : Border
                 if (ResizeUp)
                 {
                     Cursor = Cursor.Parse("SizeNorthSouth");
-                    _resizeContext = new(BorderEdge.Top);
+                    _resizeContext = new(BorderEdge.Top, (Event.Start, Event.End));
                     _moveContext = null;
                 }
                 break;
@@ -517,7 +517,7 @@ internal class EventBorder : Border
                 if (ResizeLeft)
                 {
                     Cursor = Cursor.Parse("SizeWestEast");
-                    _resizeContext = new(BorderEdge.Left);
+                    _resizeContext = new(BorderEdge.Left, (Event.Start, Event.End));
                     _moveContext = null;
                 }
                 break;
@@ -525,7 +525,7 @@ internal class EventBorder : Border
                 if (ResizeRight)
                 {
                     Cursor = Cursor.Parse("SizeWestEast");
-                    _resizeContext = new(BorderEdge.Right);
+                    _resizeContext = new(BorderEdge.Right, (Event.Start, Event.End));
                     _moveContext = null;
                 }
                 break;
@@ -570,8 +570,19 @@ internal class EventBorder : Border
     {
         _resizeMode = false;
         _moveMode = false;
-        _resizeContext = null;
-        _moveContext = null;
+        if (_resizeContext is not null)
+        {
+            EventResizedArgs args = new(CalendarView.EventResizedEvent, Event, (_resizeContext.originalBounds.start, _resizeContext.originalBounds.end), (Event.Start, Event.End));
+            _calendarView!.RaiseEvent(args);
+            _resizeContext = null;
+        }
+
+        if (_moveContext is not null)
+        {
+            EventMovedArgs args = new(CalendarView.EventMovedEvent, Event, (_moveContext.originalStart, _moveContext.originalEnd), (Event.Start, Event.End));
+            _calendarView!.RaiseEvent(args);
+            _moveContext = null;
+        }
         _calendarView!.ForceRender();
     }
     private BorderEdge? DetermineEdge(PointerEventArgs e)
@@ -641,7 +652,8 @@ internal enum EventBorderType
     SingleDay,
 }
 internal record ResizeContext(
-    BorderEdge Edge
+    BorderEdge Edge,
+    (DateTime start, DateTime end) originalBounds
 );
 internal record MoveContext(
     DateTime moveFrom,

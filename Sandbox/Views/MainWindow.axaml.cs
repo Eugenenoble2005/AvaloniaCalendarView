@@ -9,11 +9,14 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        (calendar as AvaloniaCalendarView.CalendarView).EventResized += (s, e) =>
+        {
+            //handle resize
+        };
+        (calendar as AvaloniaCalendarView.CalendarView).EventMoved += (s, e) =>
+        {
+            //handle move
+        };
     }
 
-    public void AddEvent(object sender, RoutedEventArgs e)
-    {
-        var window = new AddEvent();
-        window.ShowDialog(this);
-    }
 }
