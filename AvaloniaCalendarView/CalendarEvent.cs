@@ -32,7 +32,7 @@ public class CalendarEvent
     /// <summary>
     /// The Brush that paints the foreground of the event.
     /// </summary>
-    public IBrush DateForegroundBrush { get; set; } = Brushes.White;
+    public IBrush ForegroundBrush { get; set; } = Brushes.White;
 
     /// <summary>
     /// Whether or not this event can be resized to the left, that is the start can be pushed back.
@@ -186,7 +186,9 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, DrawingCanvas canv
                     {
                         Text = $"{_event.Title} ({_event.Start.ToString()} - {_event.End.ToString()})",
                         TextAlignment = TextAlignment.Center,
-                        TextTrimming = TextTrimming.CharacterEllipsis
+                        TextTrimming = TextTrimming.CharacterEllipsis,
+                        Foreground = _event.ForegroundBrush,
+
                     };
 
                     childContent.Children.Add(eventText);
@@ -274,6 +276,7 @@ internal class EventDrawer(IEnumerable<CalendarEvent> events, DrawingCanvas canv
             Text = context._event.Title,
             TextAlignment = TextAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
+            Foreground = context._event.ForegroundBrush,
             FontSize = 15
         };
 
